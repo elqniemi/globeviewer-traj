@@ -2063,28 +2063,6 @@ export class GlobeManager {
         }
     }
     
-    // Update point styling
-    togglePoints(visible) {
-        this.settings.points.visible = visible;
-        this.pointsGroup.visible = visible;
-    }
-    
-    updatePointSize(size) {
-        this.settings.points.size = size;
-        
-        this.clearPoints();
-        // Re-render points with new size (handled by UI manager)
-    }
-    
-    updatePointColor(color) {
-        this.settings.points.color = color;
-        
-        this.pointsGroup.children.forEach(point => {
-            if (point.material) {
-                point.material.color.set(color);
-            }
-        });
-    }
     
     // Create legend for categories
     createLegend(colors) {
@@ -2485,33 +2463,6 @@ export class GlobeManager {
         this.dataRanges[rangeType].max = max;
     }
     
-    // Update route styling
-    updateRouteColorMode(mode) {
-        this.settings.routes.colorMode = mode;
-    }
-    
-    updateRouteColor(color) {
-        this.settings.routes.color = color;
-        
-        if (this.settings.routes.colorMode === 'single') {
-            this.routesGroup.children.forEach(line => {
-                if (line.material) {
-                    line.material.color.set(color);
-                }
-            });
-        }
-    }
-    
-    updateRouteWidth(width) {
-        this.settings.routes.width = width;
-        if (this.settings.routes.widthMode === 'fixed') {
-            this.routesGroup.children.forEach(line => {
-                if (line.material) {
-                    line.material.linewidth = width;
-                }
-            });
-        }
-    }
     
     updateWidthMode(mode) {
         this.settings.routes.widthMode = mode;
@@ -2854,13 +2805,6 @@ export class GlobeManager {
         });
     }
     
-    updateRouteThickness(thickness) {
-        this.settings.routes.thickness = thickness;
-        
-        // Force a refresh of the visualization to apply the new thickness
-        // since it requires recreating the geometries
-        this.refreshVisualization();
-    }
     
     // Helper method to refresh the current visualization with updated settings
     refreshVisualization() {
