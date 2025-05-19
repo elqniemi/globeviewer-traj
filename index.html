@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globe Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-4">
+        <header class="mb-4">
+            <h1 class="text-2xl font-bold">Globe Viewer</h1>
+        </header>
+        
+        <div class="flex flex-col md:flex-row gap-4">
+            <!-- Globe Container -->
+            <div id="globe-container" class="w-full md:w-3/4 bg-black rounded-lg relative h-[600px]">
+                <div id="globe-scene" class="w-full h-full"></div>
+                <button id="export-btn" class="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded">
+                    Export PNG
+                </button>
+            </div>
+            
+            <!-- Controls Panel -->
+            <div class="w-full md:w-1/4 bg-gray-800 rounded-lg p-4 overflow-y-auto max-h-[600px]">
+                <h2 class="text-xl font-bold mb-4">Controls</h2>
+                
+                <!-- Data Import Section -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2">Import Data</h3>
+                    <div class="mb-3">
+                        <label class="block mb-1">Data Type</label>
+                        <select id="data-type" class="w-full bg-gray-700 text-white p-2 rounded">
+                            <option value="trajectory-points">Trajectory Points (route_id, point_id, lat, lon, z)</option>
+                            <option value="trajectory-segments">Trajectory Segments (segment_id, start_x, start_y, end_x, end_y)</option>
+                            <option value="od-matrix">OD Matrix (points + edges)</option>
+                            <option value="ordered-trajectories">Ordered Trajectories</option>
+                        </select>
+                    </div>
+                    
+                    <div id="point-file-container" class="mb-3">
+                        <label class="block mb-1">Points CSV</label>
+                        <input type="file" id="point-file" class="w-full" accept=".csv">
+                    </div>
+                    
+                    <div id="edge-file-container" class="mb-3 hidden">
+                        <label class="block mb-1">Edges CSV</label>
+                        <input type="file" id="edge-file" class="w-full" accept=".csv">
+                    </div>
+                    
+                    <button id="load-data-btn" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded w-full">
+                        Load Data
+                    </button>
+                </div>
+                
+                <!-- Visualization Options -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2">Route Styling</h3>
+                    
+                    <!-- Route Color -->
+                    <div class="mb-3">
+                        <label class="block mb-1">Color Mode</label>
+                        <select id="color-mode" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="single">Single Color</option>
+                            <option value="category">By Category</option>
+                            <option value="gradient">Gradient</option>
+                            <option value="variable">By Variable</option>
+                        </select>
+                        
+                        <div id="single-color-container">
+                            <div class="flex items-center">
+                                <label class="block mr-2">Route Color</label>
+                                <div id="route-color-picker" class="color-picker"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="variable-color-container" class="hidden mt-2">
+                            <label class="block mb-1">Variable</label>
+                            <select id="color-variable" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                            
+                            <label class="block mb-1">Color Ramp</label>
+                            <select id="color-ramp" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                                <option value="viridis">Viridis</option>
+                                <option value="plasma">Plasma</option>
+                                <option value="inferno">Inferno</option>
+                                <option value="magma">Magma</option>
+                                <option value="cividis">Cividis</option>
+                                <option value="rainbow">Rainbow</option>
+                                <option value="sinebow">Sinebow</option>
+                                <option value="turbo">Turbo</option>
+                                <option value="red-blue">Red-Blue</option>
+                                <option value="red-yellow-green">Red-Yellow-Green</option>
+                                <option value="custom">Custom...</option>
+                            </select>
+                            
+                            <div id="custom-ramp-container" class="hidden">
+                                <label class="block mb-1">Start Color</label>
+                                <div id="ramp-start-color" class="color-picker mb-2"></div>
+                                
+                                <label class="block mb-1">End Color</label>
+                                <div id="ramp-end-color" class="color-picker mb-2"></div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <label class="block mb-1">Transform</label>
+                                <select id="color-transform" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                                    <option value="none">None</option>
+                                    <option value="log">Logarithmic (ln)</option>
+                                    <option value="sqrt">Square Root</option>
+                                    <option value="pow2">Power (²)</option>
+                                    <option value="norm">Normalize (0-1)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Route Width -->
+                    <div class="mb-3">
+                        <label class="block mb-1">Width Mode</label>
+                        <select id="width-mode" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="fixed">Fixed Width</option>
+                            <option value="variable">By Variable</option>
+                        </select>
+                        
+                        <div id="fixed-width-container">
+                            <label class="block mb-1">Route Width</label>
+                            <div class="flex items-center">
+                                <input type="range" id="route-width" min="1" max="50" value="3" class="w-full">
+                                <span id="route-width-value" class="ml-2">3</span>
+                            </div>
+                        </div>
+                        
+                        <div id="variable-width-container" class="hidden mt-2">
+                            <label class="block mb-1">Variable</label>
+                            <select id="width-variable" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                            
+                            <div class="flex items-center justify-between">
+                                <label class="block">Min Width</label>
+                                <input type="number" id="min-width" value="1" min="1" max="25" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            
+                            <div class="flex items-center justify-between mt-1">
+                                <label class="block">Max Width</label>
+                                <input type="number" id="max-width" value="10" min="2" max="50" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            
+                            <div class="mt-2">
+                                <label class="block mb-1">Transform</label>
+                                <select id="width-transform" class="w-full bg-gray-700 text-white p-2 rounded">
+                                    <option value="none">None</option>
+                                    <option value="log">Logarithmic (ln)</option>
+                                    <option value="sqrt">Square Root</option>
+                                    <option value="pow2">Power (²)</option>
+                                    <option value="norm">Normalize (0-1)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Route Thickness (3D) -->
+                    <div class="mb-3">
+                        <label class="block mb-1">3D Thickness</label>
+                        <div class="flex items-center">
+                            <input type="range" id="route-thickness" min="0" max="20" value="0" class="w-full">
+                            <span id="route-thickness-value" class="ml-2">0</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">0 = flat lines, higher values create 3D tube-like paths</p>
+                    </div>
+                    
+                    <!-- Line Style Options -->
+                    <div class="mb-3">
+                        <label class="block mb-1">Line Style</label>
+                        <select id="line-style" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="solid">Solid</option>
+                            <option value="glow">Glow</option>
+                            <option value="dash">Dashed</option>
+                            <option value="arrow">Arrowed</option>
+                        </select>
+                        
+                        <!-- Dash Style Options -->
+                        <div id="dash-controls" class="mb-2 hidden">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block">Dash Size</label>
+                                <input type="number" id="dash-size" value="0.1" min="0.01" max="0.5" step="0.01" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <label class="block">Gap Size</label>
+                                <input type="number" id="gap-size" value="0.05" min="0.01" max="0.3" step="0.01" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Arc Height (OD Matrix) -->
+                    <div id="arc-height-container" class="mb-3 hidden">
+                        <label class="block mb-1">Arc Height</label>
+                        <div class="flex items-center">
+                            <input type="range" id="arc-height" min="0" max="2" step="0.05" value="0.4" class="w-full">
+                            <span id="arc-height-value" class="ml-2">0.4</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">0 = surface level, higher values create taller arcs</p>
+                    </div>
+                </div>
+                
+                <!-- Point Styling -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2">Point Styling</h3>
+                    
+                    <div class="mb-3">
+                        <label class="flex items-center mb-1">
+                            <input type="checkbox" id="show-points" checked class="mr-2">
+                            Show Points
+                        </label>
+                    </div>
+                    
+                    <!-- Point Size -->
+                    <div class="mb-3">
+                        <label class="block mb-1">Size Mode</label>
+                        <select id="point-size-mode" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="fixed">Fixed Size</option>
+                            <option value="variable">By Variable</option>
+                        </select>
+                        
+                        <div id="fixed-point-size-container">
+                            <label class="block mb-1">Point Size</label>
+                            <div class="flex items-center">
+                                <input type="range" id="point-size" min="1" max="10" value="2" class="w-full">
+                                <span id="point-size-value" class="ml-2">2</span>
+                            </div>
+                        </div>
+                        
+                        <div id="variable-point-size-container" class="hidden mt-2">
+                            <label class="block mb-1">Variable</label>
+                            <select id="point-size-variable" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                            
+                            <div class="flex items-center justify-between">
+                                <label class="block">Min Size</label>
+                                <input type="number" id="min-point-size" value="1" min="1" max="5" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            
+                            <div class="flex items-center justify-between mt-1">
+                                <label class="block">Max Size</label>
+                                <input type="number" id="max-point-size" value="10" min="2" max="20" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            
+                            <div class="mt-2">
+                                <label class="block mb-1">Transform</label>
+                                <select id="point-size-transform" class="w-full bg-gray-700 text-white p-2 rounded">
+                                    <option value="none">None</option>
+                                    <option value="log">Logarithmic (ln)</option>
+                                    <option value="sqrt">Square Root</option>
+                                    <option value="pow2">Power (²)</option>
+                                    <option value="norm">Normalize (0-1)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block mb-1">Point Color</label>
+                        <div id="point-color-picker" class="color-picker"></div>
+                    </div>
+                </div>
+                
+                <!-- Globe Settings -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Globe Settings</h3>
+                    
+                    <div class="mb-3">
+                        <label class="block mb-1">Background</label>
+                        <select id="background-style" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="stars">Stars</option>
+                            <option value="space">Deep Space</option>
+                            <option value="milky-way">Milky Way</option>
+                            <option value="solid">Solid Color</option>
+                        </select>
+                        
+                        <div id="bg-color-container" class="hidden">
+                            <label class="block mb-1">Background Color</label>
+                            <div id="bg-color-picker" class="color-picker"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block mb-1">Atmosphere</label>
+                        <select id="atmosphere-style" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="realistic">Realistic</option>
+                            <option value="stylized">Stylized</option>
+                            <option value="none">None</option>
+                        </select>
+                        
+                        <div id="atmosphere-settings">
+                            <label class="block mb-1">Intensity</label>
+                            <div class="flex items-center">
+                                <input type="range" id="atmosphere-intensity" min="0" max="3" step="0.1" value="1" class="w-full">
+                                <span id="atmosphere-intensity-value" class="ml-2">1.0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block mb-1">Lighting</label>
+                        <select id="lighting-mode" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
+                            <option value="day">Day</option>
+                            <option value="night">Night</option>
+                            <option value="global">Global</option>
+                            <option value="view">View-Based</option>
+                        </select>
+                        
+                        <div id="lighting-controls">
+                            <!-- Day-specific controls -->
+                            <div id="day-controls" class="mb-2">
+                                <label class="block mb-1">Sun Position</label>
+                                <div class="mb-1">
+                                    <label class="block text-sm">North-South</label>
+                                    <div class="flex items-center">
+                                        <span class="text-xs mr-1">South</span>
+                                        <input type="range" id="sun-ns" min="-90" max="90" step="5" value="30" class="w-full">
+                                        <span class="text-xs ml-1">North</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm">East-West</label>
+                                    <div class="flex items-center">
+                                        <span class="text-xs mr-1">East</span>
+                                        <input type="range" id="sun-ew" min="-180" max="180" step="5" value="50" class="w-full">
+                                        <span class="text-xs ml-1">West</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Common lighting controls -->
+                            <div class="mb-2">
+                                <label class="block mb-1">Light Intensity</label>
+                                <div class="flex items-center">
+                                    <input type="range" id="light-intensity" min="0" max="2" step="0.1" value="1" class="w-full">
+                                    <span id="light-intensity-value" class="ml-2">1.0</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="block mb-1">Ambient Light</label>
+                                <div class="flex items-center">
+                                    <input type="range" id="ambient-intensity" min="0" max="1" step="0.1" value="0.3" class="w-full">
+                                    <span id="ambient-intensity-value" class="ml-2">0.3</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="block mb-1">Light Color</label>
+                                <div id="light-color-picker" class="color-picker"></div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="flex items-center mb-1">
+                                    <input type="checkbox" id="reduce-glare" class="mr-2">
+                                    Reduce Glare
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    <script type="module" src="src/js/main.js"></script>
+</body>
+</html> 
