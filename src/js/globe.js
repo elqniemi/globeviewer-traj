@@ -270,7 +270,7 @@ export class GlobeManager {
         
         // Convert latitude and longitude to 3D position
         // latitude: -90 (south) to 90 (north)
-        // longitude: -180 (east) to 180 (west)
+        // longitude: -180 (west) to 180 (east)
         
         const phi = (90 - latitude) * (Math.PI / 180);
         const theta = (longitude + 180) * (Math.PI / 180);
@@ -1650,94 +1650,32 @@ export class GlobeManager {
                 
                 // Calculate arc points based on arc height
                 const curvePoints = [];
-                
-                // Special handling for arc height to prevent cutting through the globe
-                if (this.settings.routes.arcHeight === 0) {
-                    // For surface-level routes, use a smooth great circle arc
-                    const segments = 50;
-                    
-                    // Calculate the angle between start and end points
-                    const angle = startPos.angleTo(endPos);
-                    
-                    // For very long arcs, use more segments
-                    const adjustedSegments = angle > Math.PI/2 ? 100 : segments;
-                    
-                    for (let i = 0; i <= adjustedSegments; i++) {
-                        const t = i / adjustedSegments;
-                        
-                        // Use spherical interpolation for smooth curve along the surface
-                        // This is a quaternion slerp which gives us points on the great circle
-                        const quaternionStart = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), startPos.clone().normalize());
-                        const quaternionEnd = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().normalize());
-                        const quaternionInterpolated = new THREE.Quaternion().slerpQuaternions(quaternionStart, quaternionEnd, t);
-                        
-                        // Apply the interpolated rotation to the up vector
-                        const interpolatedPos = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionInterpolated);
-                        curvePoints.push(interpolatedPos);
-                    }
-                } else {
-                    // For elevated arcs, create a smooth curve with height
-                    const angle = startPos.angleTo(endPos);
-                    
-                    if (angle > Math.PI/2) {
-                        // For very long arcs, use a multi-step approach for smoother curves
-                        const segments = 100;
-                        
-                        // Create control points along the surface
-                        const controlPointCount = 7; // More control points for smoother curve
-                        const controlPoints = [];
-                        
-                        // First create points along the great circle
-                        for (let i = 0; i <= controlPointCount; i++) {
-                            const t = i / controlPointCount;
-                            
-                            // Use quaternion slerp for great circle points
-                            const quaternionStart = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), startPos.clone().normalize());
-                            const quaternionEnd = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().normalize());
-                            const quaternionInterpolated = new THREE.Quaternion().slerpQuaternions(quaternionStart, quaternionEnd, t);
-                            
-                            // Apply the interpolated rotation to the up vector
-                            const surfacePos = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionInterpolated);
-                            
-                            // Elevate the control point based on position in sequence and arc height
-                            // Using a sine curve for elevation gives a smoother arc
-                            const elevation = this.settings.routes.arcHeight * Math.sin(Math.PI * t);
-                            const elevatedPos = surfacePos.clone().multiplyScalar(1 + elevation);
-                            
-                            controlPoints.push(elevatedPos);
-                        }
-                        
-                        // Create a smooth curve using the control points
-                        // Use a Catmull-Rom spline for smooth interpolation
-                        const curve = new THREE.CatmullRomCurve3(controlPoints);
-                        
-                        // Sample points along the curve
-                        for (let i = 0; i <= segments; i++) {
-                            const t = i / segments;
-                            curvePoints.push(curve.getPoint(t));
-                        }
-                    } else {
-                        // For shorter arcs, use a simple but smoother method
-                        const segments = 50;
-                        
-                        for (let i = 0; i <= segments; i++) {
-                            const t = i / segments;
-                            
-                            // Use quaternion slerp for surface points
-                            const quaternionStart = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), startPos.clone().normalize());
-                            const quaternionEnd = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().normalize());
-                            const quaternionInterpolated = new THREE.Quaternion().slerpQuaternions(quaternionStart, quaternionEnd, t);
-                            
-                            // Apply the interpolated rotation to the up vector
-                            const surfacePos = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionInterpolated);
-                            
-                            // Elevate based on sine curve for smooth arc
-                            const elevation = this.settings.routes.arcHeight * Math.sin(Math.PI * t);
-                            const elevatedPos = surfacePos.clone().multiplyScalar(1 + elevation);
-                            
-                            curvePoints.push(elevatedPos);
-                        }
-                    }
+
+                // Determine number of segments based on angle between points
+                const angle = startPos.angleTo(endPos);
+                const segments = angle > Math.PI / 2 ? 100 : 50;
+
+                const quaternionStart = new THREE.Quaternion().setFromUnitVectors(
+                    new THREE.Vector3(0, 1, 0),
+                    startPos.clone().normalize()
+                );
+                const quaternionEnd = new THREE.Quaternion().setFromUnitVectors(
+                    new THREE.Vector3(0, 1, 0),
+                    endPos.clone().normalize()
+                );
+
+                // Generate points along the great circle and raise them based on arc height
+                for (let i = 0; i <= segments; i++) {
+                    const t = i / segments;
+                    const quaternionInterpolated = new THREE.Quaternion().slerpQuaternions(
+                        quaternionStart,
+                        quaternionEnd,
+                        t
+                    );
+
+                    const surfacePos = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionInterpolated);
+                    const elevation = this.settings.routes.arcHeight * Math.sin(Math.PI * t);
+                    curvePoints.push(surfacePos.multiplyScalar(1 + elevation));
                 }
                 
                 // Extract positions for line geometry
@@ -2461,6 +2399,24 @@ export class GlobeManager {
         // Store in appropriate range object
         this.dataRanges[rangeType].min = min;
         this.dataRanges[rangeType].max = max;
+    }
+    
+
+    // Update route styling
+    updateRouteColorMode(mode) {
+        this.settings.routes.colorMode = mode;
+    }
+    
+    updateRouteColor(color) {
+        this.settings.routes.color = color;
+        
+        if (this.settings.routes.colorMode === 'single') {
+            this.routesGroup.children.forEach(line => {
+                if (line.material) {
+                    line.material.color.set(color);
+                }
+            });
+        }
     }
     
     
