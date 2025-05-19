@@ -1649,7 +1649,8 @@ export class GlobeManager {
                 const distance = startPos.distanceTo(endPos);
                 
                 // Calculate arc points based on arc height
-                const curvePoints = [];
+                // Store points along the arc
+                const arcPoints = [];
 
                 // Determine number of segments based on angle between points
                 const angle = startPos.angleTo(endPos);
@@ -1675,12 +1676,12 @@ export class GlobeManager {
 
                     const surfacePos = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternionInterpolated);
                     const elevation = this.settings.routes.arcHeight * Math.sin(Math.PI * t);
-                    curvePoints.push(surfacePos.multiplyScalar(1 + elevation));
+                    arcPoints.push(surfacePos.multiplyScalar(1 + elevation));
                 }
-                
+
                 // Extract positions for line geometry
                 const positions = [];
-                curvePoints.forEach(p => {
+                arcPoints.forEach(p => {
                     positions.push(p.x, p.y, p.z);
                 });
                 
@@ -1801,19 +1802,12 @@ export class GlobeManager {
                 
                 if (thickness > 0) {
                     try {
-                        // Create a series of points for smoother tube
-                        const curvePoints = [];
-                        const tubeSegments = 12;
-                        
-                        for (let i = 0; i <= tubeSegments; i++) {
-                            const t = i / tubeSegments;
-                            const pos = new THREE.Vector3().lerpVectors(startPos, endPos, t);
-                            curvePoints.push(pos);
-                        }
-                        
-                        // Create a smooth curve
-                        const curve = new THREE.CatmullRomCurve3(curvePoints);
-                        
+                        // Use the already-calculated arc points for the tube path
+                        const tubeSegments = arcPoints.length * 3;
+
+                        // Create a smooth curve following the arc
+                        const curve = new THREE.CatmullRomCurve3(arcPoints);
+
                         // Create tube geometry
                         const tubeGeometry = new THREE.TubeGeometry(
                             curve,              // path
@@ -1861,16 +1855,16 @@ export class GlobeManager {
                 this.routesGroup.add(line);
                 
                 // Add arrows for arrow style
-                if (this.settings.routes.style === 'arrow' && curvePoints && curvePoints.length > 2) {
+                if (this.settings.routes.style === 'arrow' && arcPoints && arcPoints.length > 2) {
                     try {
                         // For OD matrix edges, add an arrow at 2/3 of the curve
-                        const pointIndex = Math.floor(curvePoints.length * 0.67);
-                        if (curvePoints[pointIndex]) {
-                            const arrowPosition = curvePoints[pointIndex];
-                            
+                        const pointIndex = Math.floor(arcPoints.length * 0.67);
+                        if (arcPoints[pointIndex]) {
+                            const arrowPosition = arcPoints[pointIndex];
+
                             // Get direction by using adjacent points
-                            const prevPoint = curvePoints[Math.max(0, pointIndex - 1)];
-                            const nextPoint = curvePoints[Math.min(curvePoints.length - 1, pointIndex + 1)];
+                            const prevPoint = arcPoints[Math.max(0, pointIndex - 1)];
+                            const nextPoint = arcPoints[Math.min(arcPoints.length - 1, pointIndex + 1)];
                             const tangent = new THREE.Vector3().subVectors(nextPoint, prevPoint).normalize();
                             
                             this.addArrow(arrowPosition, tangent, edgeColor, lineWidth);
