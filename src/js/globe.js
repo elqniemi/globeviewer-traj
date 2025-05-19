@@ -270,7 +270,7 @@ export class GlobeManager {
         
         // Convert latitude and longitude to 3D position
         // latitude: -90 (south) to 90 (north)
-        // longitude: -180 (east) to 180 (west)
+        // longitude: -180 (west) to 180 (east)
         
         const phi = (90 - latitude) * (Math.PI / 180);
         const theta = (longitude + 180) * (Math.PI / 180);
