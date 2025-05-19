@@ -2001,28 +2001,6 @@ export class GlobeManager {
         }
     }
     
-    // Update point styling
-    togglePoints(visible) {
-        this.settings.points.visible = visible;
-        this.pointsGroup.visible = visible;
-    }
-    
-    updatePointSize(size) {
-        this.settings.points.size = size;
-        
-        this.clearPoints();
-        // Re-render points with new size (handled by UI manager)
-    }
-    
-    updatePointColor(color) {
-        this.settings.points.color = color;
-        
-        this.pointsGroup.children.forEach(point => {
-            if (point.material) {
-                point.material.color.set(color);
-            }
-        });
-    }
     
     // Create legend for categories
     createLegend(colors) {
@@ -2423,6 +2401,7 @@ export class GlobeManager {
         this.dataRanges[rangeType].max = max;
     }
     
+
     // Update route styling
     updateRouteColorMode(mode) {
         this.settings.routes.colorMode = mode;
