@@ -2502,16 +2502,6 @@ export class GlobeManager {
         }
     }
     
-    updateRouteWidth(width) {
-        this.settings.routes.width = width;
-        if (this.settings.routes.widthMode === 'fixed') {
-            this.routesGroup.children.forEach(line => {
-                if (line.material) {
-                    line.material.linewidth = width;
-                }
-            });
-        }
-    }
     
     updateWidthMode(mode) {
         this.settings.routes.widthMode = mode;
@@ -2854,13 +2844,6 @@ export class GlobeManager {
         });
     }
     
-    updateRouteThickness(thickness) {
-        this.settings.routes.thickness = thickness;
-        
-        // Force a refresh of the visualization to apply the new thickness
-        // since it requires recreating the geometries
-        this.refreshVisualization();
-    }
     
     // Helper method to refresh the current visualization with updated settings
     refreshVisualization() {
