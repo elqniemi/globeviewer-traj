@@ -14,7 +14,8 @@ export class MapManager {
             routes: {
                 color: '#ff0000',
                 width: 3,
-                flowMode: 'directional'
+                flowMode: 'directional',
+                style: 'solid'
             },
             points: {
                 color: '#ffffff',
@@ -78,6 +79,17 @@ export class MapManager {
             if (layer.setRadius) layer.setRadius(size);
         });
     }
+
+    updateLineStyle(style) {
+        this.settings.routes.style = style;
+        this.routesLayer.eachLayer(layer => {
+            if (style === 'dash') {
+                layer.setStyle({ dashArray: '5,5' });
+            } else {
+                layer.setStyle({ dashArray: null });
+            }
+        });
+
 
     // New no-op or minimal implementations for UI compatibility
     updateRouteColorMode(mode) {
@@ -270,6 +282,7 @@ export class MapManager {
             coords.forEach(c => allCoords.push(c));
         });
 
+        this.updateLineStyle(this.settings.routes.style);
         if (allCoords.length > 0) {
             const bounds = Llib.latLngBounds(allCoords);
             this.map.fitBounds(bounds, { padding: [20, 20] });
@@ -303,6 +316,7 @@ export class MapManager {
             path.forEach(c => allCoords.push(c));
         });
 
+        this.updateLineStyle(this.settings.routes.style);
         if (allCoords.length > 0) {
             const bounds = Llib.latLngBounds(allCoords);
             this.map.fitBounds(bounds, { padding: [20, 20] });
@@ -323,6 +337,8 @@ export class MapManager {
             }).addTo(this.routesLayer);
             coords.forEach(c => allCoords.push(c));
         });
+
+        this.updateLineStyle(this.settings.routes.style);
 
         if (allCoords.length > 0) {
             const bounds = Llib.latLngBounds(allCoords);
