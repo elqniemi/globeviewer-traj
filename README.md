@@ -96,6 +96,9 @@ The application is built with:
 - Tailwind CSS for styling
 - Vite for bundling
 
+### Browser Support
+Wide line rendering uses Three.js `Line2` which requires WebGL2. If WebGL2 is unavailable, the app falls back to standard thin lines.
+
 ## License
 
 MIT
