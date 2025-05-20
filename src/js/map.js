@@ -149,6 +149,7 @@ export class MapManager {
             }
         });
 
+        const allCoords = [];
         edgesToDraw.forEach(e => {
             const start = pointsMap[e.source];
             const end = pointsMap[e.destination];
@@ -163,7 +164,14 @@ export class MapManager {
                 opacity: 0.8
             });
             line.addTo(this.routesLayer);
+            coords.forEach(c => allCoords.push(c));
         });
+
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addTrajectoryPoints(data) {
@@ -171,6 +179,7 @@ export class MapManager {
         this.clearPoints();
         const Llib = window.L;
         const routes = {};
+        const allCoords = [];
         data.forEach(p => {
             if (!routes[p.route_id]) routes[p.route_id] = [];
             routes[p.route_id].push([p.lat, p.lon]);
@@ -181,26 +190,42 @@ export class MapManager {
                 fillOpacity: 0.8
             });
             marker.addTo(this.pointsLayer);
+            allCoords.push([p.lat, p.lon]);
         });
         Object.values(routes).forEach(path => {
             Llib.polyline(path, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
+            path.forEach(c => allCoords.push(c));
         });
+
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addTrajectorySegments(data) {
         this.clearRoutes();
         this.clearPoints();
         const Llib = window.L;
+        const allCoords = [];
         data.forEach(seg => {
             const coords = [[seg.start_lat, seg.start_lon], [seg.end_lat, seg.end_lon]];
             Llib.polyline(coords, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
+            coords.forEach(c => allCoords.push(c));
         });
+
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addOrderedTrajectories(data) {
