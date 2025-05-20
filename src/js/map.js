@@ -79,6 +79,109 @@ export class MapManager {
         });
     }
 
+    // New no-op or minimal implementations for UI compatibility
+    updateRouteColorMode(mode) {
+        this.settings.routes.colorMode = mode;
+    }
+
+    updateColorVariable(variable) {
+        this.settings.routes.variable = variable;
+    }
+
+    updateColorRamp(ramp) {
+        this.settings.routes.colorRamp = ramp;
+    }
+
+    updateCustomColors(startColor, endColor) {
+        if (!this.settings.routes.customColors) {
+            this.settings.routes.customColors = {};
+        }
+        this.settings.routes.customColors.start = startColor;
+        this.settings.routes.customColors.end = endColor;
+    }
+
+    updateTransform(transform, type) {
+        if (type === 'color') {
+            this.settings.routes.transform = transform;
+        } else if (type === 'width') {
+            this.settings.routes.widthTransform = transform;
+        } else if (type === 'pointSize') {
+            this.settings.points.sizeTransform = transform;
+        }
+    }
+
+    updateWidthMode(mode) {
+        this.settings.routes.widthMode = mode;
+    }
+
+    updateWidthVariable(variable) {
+        this.settings.routes.widthVariable = variable;
+    }
+
+    updateWidthRange(min, max) {
+        if (!this.settings.routes.widthRange) {
+            this.settings.routes.widthRange = {};
+        }
+        this.settings.routes.widthRange.min = min;
+        this.settings.routes.widthRange.max = max;
+    }
+
+    updateRouteThickness(thickness) {
+        this.settings.routes.thickness = thickness;
+    }
+
+    updateRouteHeight(height) {
+        this.settings.routes.routeHeight = height;
+    }
+
+    updateArcHeight(height) {
+        this.settings.routes.arcHeight = height;
+    }
+
+    updateDashSettings(dashSize, gapSize) {
+        if (!this.settings.routes.dashSettings) {
+            this.settings.routes.dashSettings = {};
+        }
+        this.settings.routes.dashSettings.dashSize = dashSize;
+        this.settings.routes.dashSettings.gapSize = gapSize;
+    }
+
+    updateFlowSettings(speed, pulseType, gradient) {
+        if (!this.settings.routes.animation) {
+            this.settings.routes.animation = {};
+        }
+        this.settings.routes.animation.speed = speed;
+        this.settings.routes.animation.pulseType = pulseType;
+        this.settings.routes.animation.gradient = gradient;
+    }
+
+    togglePoints(visible) {
+        this.settings.points.visible = visible;
+        if (visible) {
+            if (!this.map.hasLayer(this.pointsLayer)) {
+                this.map.addLayer(this.pointsLayer);
+            }
+        } else if (this.map.hasLayer(this.pointsLayer)) {
+            this.map.removeLayer(this.pointsLayer);
+        }
+    }
+
+    updatePointSizeMode(mode) {
+        this.settings.points.sizeMode = mode;
+    }
+
+    updatePointSizeVariable(variable) {
+        this.settings.points.sizeVariable = variable;
+    }
+
+    updatePointSizeRange(min, max) {
+        if (!this.settings.points.sizeRange) {
+            this.settings.points.sizeRange = {};
+        }
+        this.settings.points.sizeRange.min = min;
+        this.settings.points.sizeRange.max = max;
+    }
+
     latLonToLatLng(lat, lon) {
         return [lat, lon];
     }
