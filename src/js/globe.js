@@ -2201,8 +2201,14 @@ export class GlobeManager {
     // Export image as PNG
     exportImage() {
         try {
-            this.renderer.render(this.scene, this.camera);
-            
+            if (this.effectsEnabled) {
+                // Render the scene with post-processing effects
+                this.composer.render();
+            } else {
+                // Render the scene directly without effects
+                this.renderer.render(this.scene, this.camera);
+            }
+
             // Create a direct download link
             const link = document.createElement('a');
             link.download = 'globe-view.png';
