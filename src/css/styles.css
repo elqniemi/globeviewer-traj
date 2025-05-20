@@ -10,6 +10,12 @@ body {
     border-radius: 0.5rem;
 }
 
+/* Map layers should sit below UI controls */
+#map-container,
+#map {
+    z-index: 10;
+}
+
 /* Custom range slider styling */
 input[type="range"] {
     -webkit-appearance: none;
