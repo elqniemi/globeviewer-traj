@@ -62,7 +62,13 @@ export class GlobeManager {
                     min: 0,
                     max: 10
                 },
-                transform: 'none'
+                transform: 'none',
+                dashSettings: { dashSize: 0.1, gapSize: 0.05 },
+                animation: {
+                    speed: 1,
+                    pulseType: 'smooth',
+                    gradient: false
+                }
             },
             points: {
                 visible: true,
@@ -118,9 +124,15 @@ export class GlobeManager {
             width: { min: 0, max: 1 },
             pointSize: { min: 0, max: 1 }
         };
-        
+
         // Post-processing effects state
         this.effectsEnabled = false;
+
+        // Materials that require animation updates
+        this.animatedMaterials = [];
+
+        // Clock for animations
+        this.clock = new THREE.Clock();
     }
     
     setUpCamera() {
@@ -162,7 +174,7 @@ export class GlobeManager {
         // Bloom pass for glow effects
         this.bloomPass = new UnrealBloomPass(
             new THREE.Vector2(containerRect.width, containerRect.height),
-            0.0,    // strength
+            1.5,    // strength
             0.4,    // radius
             0.85    // threshold
         );
@@ -753,6 +765,13 @@ export class GlobeManager {
     }
     
     render() {
+        const delta = this.clock.getDelta();
+
+        // Update animated line materials
+        this.animatedMaterials.forEach(obj => {
+            obj.material.dashOffset -= obj.speed * delta;
+        });
+
         // Update the camera position for atmosphere shader
         if (this.atmosphereMesh && this.settings.globe.atmosphereStyle === 'realistic') {
             this.atmosphereMesh.material.uniforms.cameraPos.value.copy(this.camera.position);
@@ -1068,6 +1087,9 @@ export class GlobeManager {
             }
             this.routesGroup.remove(object);
         }
+
+        // Reset animated materials list
+        this.animatedMaterials = [];
     }
     
     clearPoints() {
@@ -1227,6 +1249,18 @@ export class GlobeManager {
                     lineMaterial.dashed = true;
                     break;
                 }
+                case 'flow': {
+                    const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
+                    lineMaterial = new LineMaterial({
+                        color: routeColor,
+                        linewidth: lineWidth,
+                        dashSize: dashSettings.dashSize,
+                        gapSize: dashSettings.gapSize
+                    });
+                    lineMaterial.dashed = true;
+                    this.animatedMaterials.push({ material: lineMaterial, speed: this.settings.routes.animation.speed });
+                    break;
+                }
                 case 'glow':
                     lineMaterial = new LineMaterial({
                         color: routeColor,
@@ -1277,17 +1311,41 @@ export class GlobeManager {
                     console.error("Error creating tube for trajectory:", error);
                     const geometry = new LineGeometry();
                     geometry.setPositions(positions);
+                    if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                        const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                        const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                        const colorsArr = [];
+                        for (let i = 0; i < curvePoints.length; i++) {
+                            const t = i / (curvePoints.length - 1);
+                            const c = this.interpolateColor(startColor, endColor, t);
+                            colorsArr.push(c.r, c.g, c.b);
+                        }
+                        geometry.setColors(colorsArr);
+                        lineMaterial.vertexColors = true;
+                    }
                     line = new Line2(geometry, lineMaterial);
-                    if (this.settings.routes.style === 'dash') {
+                    if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                         line.computeLineDistances();
                     }
                 }
             } else {
                 const geometry = new LineGeometry();
                 geometry.setPositions(positions);
+                if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                    const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                    const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                    const colorsArr = [];
+                    for (let i = 0; i < curvePoints.length; i++) {
+                        const t = i / (curvePoints.length - 1);
+                        const c = this.interpolateColor(startColor, endColor, t);
+                        colorsArr.push(c.r, c.g, c.b);
+                    }
+                    geometry.setColors(colorsArr);
+                    lineMaterial.vertexColors = true;
+                }
                 line = new Line2(geometry, lineMaterial);
 
-                if (this.settings.routes.style === 'dash') {
+                if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                     line.computeLineDistances();
                 }
             }
@@ -1493,6 +1551,18 @@ export class GlobeManager {
                     lineMaterial.dashed = true;
                     break;
                 }
+                case 'flow': {
+                    const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
+                    lineMaterial = new LineMaterial({
+                        color: segmentColor,
+                        linewidth: lineWidth,
+                        dashSize: dashSettings.dashSize,
+                        gapSize: dashSettings.gapSize
+                    });
+                    lineMaterial.dashed = true;
+                    this.animatedMaterials.push({ material: lineMaterial, speed: this.settings.routes.animation.speed });
+                    break;
+                }
                 case 'glow':
                     lineMaterial = new LineMaterial({
                         color: segmentColor,
@@ -1544,17 +1614,41 @@ export class GlobeManager {
                     console.error("Error creating tube for segment:", error);
                     const geometry = new LineGeometry();
                     geometry.setPositions(positions);
+                    if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                        const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                        const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                        const colorsArr = [];
+                        for (let i = 0; i < curvePoints.length; i++) {
+                            const t = i / (curvePoints.length - 1);
+                            const c = this.interpolateColor(startColor, endColor, t);
+                            colorsArr.push(c.r, c.g, c.b);
+                        }
+                        geometry.setColors(colorsArr);
+                        lineMaterial.vertexColors = true;
+                    }
                     line = new Line2(geometry, lineMaterial);
-                    if (this.settings.routes.style === 'dash') {
+                    if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                         line.computeLineDistances();
                     }
                 }
             } else {
                 const geometry = new LineGeometry();
                 geometry.setPositions(positions);
+                if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                    const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                    const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                    const colorsArr = [];
+                    for (let i = 0; i < curvePoints.length; i++) {
+                        const t = i / (curvePoints.length - 1);
+                        const c = this.interpolateColor(startColor, endColor, t);
+                        colorsArr.push(c.r, c.g, c.b);
+                    }
+                    geometry.setColors(colorsArr);
+                    lineMaterial.vertexColors = true;
+                }
                 line = new Line2(geometry, lineMaterial);
 
-                if (this.settings.routes.style === 'dash') {
+                if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                     line.computeLineDistances();
                 }
             }
@@ -1856,6 +1950,18 @@ export class GlobeManager {
                         lineMaterial.dashed = true;
                         break;
                     }
+                    case 'flow': {
+                        const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
+                        lineMaterial = new LineMaterial({
+                            color: edgeColor,
+                            linewidth: lineWidth,
+                            dashSize: dashSettings.dashSize,
+                            gapSize: dashSettings.gapSize
+                        });
+                        lineMaterial.dashed = true;
+                        this.animatedMaterials.push({ material: lineMaterial, speed: this.settings.routes.animation.speed });
+                        break;
+                    }
                     case 'glow':
                         lineMaterial = new LineMaterial({
                             color: edgeColor,
@@ -1916,16 +2022,40 @@ export class GlobeManager {
                         // Fall back to regular line
                         const geometry = new LineGeometry();
                         geometry.setPositions(positions);
+                        if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                            const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                            const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                            const colorsArr = [];
+                            for (let i = 0; i < arcPoints.length; i++) {
+                                const t = i / (arcPoints.length - 1);
+                                const c = this.interpolateColor(startColor, endColor, t);
+                                colorsArr.push(c.r, c.g, c.b);
+                            }
+                            geometry.setColors(colorsArr);
+                            lineMaterial.vertexColors = true;
+                        }
                         line = new Line2(geometry, lineMaterial);
-                        if (this.settings.routes.style === 'dash') {
+                        if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                             line.computeLineDistances();
                         }
                     }
                 } else {
                     const geometry = new LineGeometry();
                     geometry.setPositions(positions);
+                    if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                        const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                        const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                        const colorsArr = [];
+                        for (let i = 0; i < arcPoints.length; i++) {
+                            const t = i / (arcPoints.length - 1);
+                            const c = this.interpolateColor(startColor, endColor, t);
+                            colorsArr.push(c.r, c.g, c.b);
+                        }
+                        geometry.setColors(colorsArr);
+                        lineMaterial.vertexColors = true;
+                    }
                     line = new Line2(geometry, lineMaterial);
-                    if (this.settings.routes.style === 'dash') {
+                    if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                         line.computeLineDistances();
                     }
                 }
@@ -2410,6 +2540,18 @@ export class GlobeManager {
                     lineMaterial.dashed = true;
                     break;
                 }
+                case 'flow': {
+                    const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
+                    lineMaterial = new LineMaterial({
+                        color: segmentColor,
+                        linewidth: lineWidth,
+                        dashSize: dashSettings.dashSize,
+                        gapSize: dashSettings.gapSize
+                    });
+                    lineMaterial.dashed = true;
+                    this.animatedMaterials.push({ material: lineMaterial, speed: this.settings.routes.animation.speed });
+                    break;
+                }
                 case 'glow':
                     lineMaterial = new LineMaterial({
                         color: segmentColor,
@@ -2460,17 +2602,41 @@ export class GlobeManager {
                     console.error("Error creating tube for ordered trajectory:", error);
                     const geometry = new LineGeometry();
                     geometry.setPositions(positions);
+                    if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                        const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                        const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                        const colorsArr = [];
+                        for (let j = 0; j < curvePoints.length; j++) {
+                            const t = j / (curvePoints.length - 1);
+                            const c = this.interpolateColor(startColor, endColor, t);
+                            colorsArr.push(c.r, c.g, c.b);
+                        }
+                        geometry.setColors(colorsArr);
+                        lineMaterial.vertexColors = true;
+                    }
                     line = new Line2(geometry, lineMaterial);
-                    if (this.settings.routes.style === 'dash') {
+                    if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                         line.computeLineDistances();
                     }
                 }
             } else {
                 const geometry = new LineGeometry();
                 geometry.setPositions(positions);
+                if (this.settings.routes.style === 'flow' && this.settings.routes.animation.gradient) {
+                    const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                    const endColor = new THREE.Color(this.settings.routes.customColors.end);
+                    const colorsArr = [];
+                    for (let j = 0; j < curvePoints.length; j++) {
+                        const t = j / (curvePoints.length - 1);
+                        const c = this.interpolateColor(startColor, endColor, t);
+                        colorsArr.push(c.r, c.g, c.b);
+                    }
+                    geometry.setColors(colorsArr);
+                    lineMaterial.vertexColors = true;
+                }
                 line = new Line2(geometry, lineMaterial);
 
-                if (this.settings.routes.style === 'dash') {
+                if (this.settings.routes.style === 'dash' || this.settings.routes.style === 'flow') {
                     line.computeLineDistances();
                 }
             }
@@ -2622,6 +2788,7 @@ export class GlobeManager {
     // Set bloom effect for glowing lines
     setGlowEffect(enabled) {
         this.bloomPass.enabled = enabled;
+        this.bloomPass.strength = enabled ? 1.5 : 0;
         this.effectsEnabled = enabled;
     }
 
@@ -2692,8 +2859,7 @@ export class GlobeManager {
         
         // Orient the arrow along the direction
         const axis = new THREE.Vector3(0, 1, 0);
-        arrow.quaternion.setFromUnitVectors(axis, direction);
-        arrow.rotateX(Math.PI / 2); // Rotate to point correctly
+        arrow.quaternion.setFromUnitVectors(axis, direction.clone().normalize());
         
         // Add to routes group
         this.routesGroup.add(arrow);
@@ -2922,6 +3088,21 @@ export class GlobeManager {
             }
         });
     }
+
+    updateFlowSettings(speed, pulseType, gradient) {
+        if (!this.settings.routes.animation) {
+            this.settings.routes.animation = {};
+        }
+
+        this.settings.routes.animation.speed = speed;
+        this.settings.routes.animation.pulseType = pulseType;
+        this.settings.routes.animation.gradient = gradient;
+
+        // Update speed on existing animated materials
+        this.animatedMaterials.forEach(obj => {
+            obj.speed = speed;
+        });
+    }
     
     
     // Helper method to refresh the current visualization with updated settings
@@ -2930,6 +3111,9 @@ export class GlobeManager {
         const routeData = [];
         const pointData = {};
         let categories = null;
+
+        // Clear animated material list
+        this.animatedMaterials = [];
         
         // Determine the current visualization type
         let visualizationType = null;

@@ -49,6 +49,7 @@ class GlobeViewerApp {
         // Set initial line style and dash controls visibility
         const lineStyle = document.getElementById('line-style').value;
         document.getElementById('dash-controls').classList.toggle('hidden', lineStyle !== 'dash');
+        document.getElementById('flow-controls').classList.toggle('hidden', lineStyle !== 'flow');
     }
     
     setupEventListeners() {
@@ -134,6 +135,7 @@ class GlobeViewerApp {
             const style = e.target.value;
             // Show dash controls only when dash style is selected
             document.getElementById('dash-controls').classList.toggle('hidden', style !== 'dash');
+            document.getElementById('flow-controls').classList.toggle('hidden', style !== 'flow');
             this.uiManager.updateLineStyle(style);
             const thick = parseFloat(document.getElementById('route-thickness').value);
             document.getElementById('thick-style-warning').classList.toggle('hidden', thick === 0);
@@ -161,6 +163,19 @@ class GlobeViewerApp {
         
         document.getElementById('gap-size').addEventListener('change', () => {
             this.updateDashSettings();
+        });
+
+        // Flow controls
+        document.getElementById('flow-speed').addEventListener('change', () => {
+            this.updateFlowSettings();
+        });
+
+        document.getElementById('flow-pulse').addEventListener('change', () => {
+            this.updateFlowSettings();
+        });
+
+        document.getElementById('flow-gradient').addEventListener('change', () => {
+            this.updateFlowSettings();
         });
         
         // Arc height control (connections)
@@ -287,6 +302,13 @@ class GlobeViewerApp {
         const dashSize = parseFloat(document.getElementById('dash-size').value);
         const gapSize = parseFloat(document.getElementById('gap-size').value);
         this.globeManager.updateDashSettings(dashSize, gapSize);
+    }
+
+    updateFlowSettings() {
+        const speed = parseFloat(document.getElementById('flow-speed').value);
+        const pulse = document.getElementById('flow-pulse').value;
+        const gradient = document.getElementById('flow-gradient').checked;
+        this.globeManager.updateFlowSettings(speed, pulse, gradient);
     }
     
     initColorPickers() {
