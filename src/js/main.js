@@ -135,6 +135,13 @@ class GlobeViewerApp {
             document.getElementById('route-thickness-value').textContent = thickness;
             this.globeManager.updateRouteThickness(thickness);
         });
+
+        // Route height control
+        document.getElementById('route-height').addEventListener('input', (e) => {
+            const h = parseFloat(e.target.value);
+            document.getElementById('route-height-value').textContent = h.toFixed(2);
+            this.globeManager.updateRouteHeight(h);
+        });
         
         // Dash controls
         document.getElementById('dash-size').addEventListener('change', () => {

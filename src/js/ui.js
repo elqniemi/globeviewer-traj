@@ -131,6 +131,11 @@ export class UIManager {
         const routeThickness = document.getElementById('route-thickness');
         routeThickness.value = 0;
         document.getElementById('route-thickness-value').textContent = '0';
+
+        // Reset route height
+        const routeHeight = document.getElementById('route-height');
+        routeHeight.value = 0;
+        document.getElementById('route-height-value').textContent = '0';
         
         // Reset point size
         const pointSize = document.getElementById('point-size');
@@ -448,6 +453,10 @@ export class UIManager {
         // 3D thickness
         const thickness = parseFloat(document.getElementById('route-thickness').value);
         this.globeManager.updateRouteThickness(thickness);
+
+        // Route height
+        const routeHeight = parseFloat(document.getElementById('route-height').value);
+        this.globeManager.updateRouteHeight(routeHeight);
         
         // Arc height for OD matrix
         if (this.currentDataType === 'od-matrix') {
