@@ -13,6 +13,7 @@ Interactive 3D globe visualization for displaying geographical routes and trajec
 - **Customizable Styling**:
   - Change route colors (single color, by category, or gradient)
   - Adjust line width and opacity
+  - Adjust route height above the globe
   - Toggle and style points
   - Adjust globe atmosphere and lighting
 

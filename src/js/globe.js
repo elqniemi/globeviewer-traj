@@ -44,6 +44,7 @@ export class GlobeManager {
                 thickness: 0, // New thickness option for 3D lines
                 style: 'solid',
                 arcHeight: 0.4,
+                routeHeight: 0,
                 variable: null,
                 colorRamp: 'viridis',
                 customColors: {
@@ -790,6 +791,38 @@ export class GlobeManager {
         
         return new THREE.Vector3(x, y, z);
     }
+
+    // Generate points along a great circle between two coordinates
+    createGreatCircleCurve(startLat, startLon, endLat, endLon, height = 0) {
+        const startPos = this.latLonToVector3(startLat, startLon);
+        const endPos = this.latLonToVector3(endLat, endLon);
+
+        const angle = startPos.angleTo(endPos);
+        const segments = angle > Math.PI / 2 ? 100 : 50;
+
+        const quaternionStart = new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            startPos.clone().normalize()
+        );
+        const quaternionEnd = new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            endPos.clone().normalize()
+        );
+
+        const points = [];
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const q = new THREE.Quaternion().slerpQuaternions(
+                quaternionStart,
+                quaternionEnd,
+                t
+            );
+            const surfacePos = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+            points.push(surfacePos.multiplyScalar(1 + height));
+        }
+
+        return points;
+    }
     
     // Apply value transform based on settings
     applyTransform(value, transformType) {
@@ -1103,13 +1136,28 @@ export class GlobeManager {
         Object.entries(routes).forEach(([routeId, points]) => {
             const lineGeometry = new THREE.BufferGeometry();
             const positions = [];
-            
-            points.forEach(point => {
-                const elevation = point.z !== undefined ? 1 + point.z / 500 : 1;
-                const position = this.latLonToVector3(point.lat, point.lon, elevation);
-                positions.push(position.x, position.y, position.z);
-            });
-            
+            const curvePoints = [];
+
+            for (let i = 0; i < points.length - 1; i++) {
+                const segPoints = this.createGreatCircleCurve(
+                    points[i].lat,
+                    points[i].lon,
+                    points[i + 1].lat,
+                    points[i + 1].lon,
+                    this.settings.routes.routeHeight
+                );
+
+                segPoints.forEach((p, idx) => {
+                    if (i > 0 && idx === 0) return; // avoid duplicates
+                    positions.push(p.x, p.y, p.z);
+                    curvePoints.push(p.clone());
+                });
+            }
+
+            if (positions.length === 0) {
+                return;
+            }
+
             lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Determine line width based on settings
@@ -1198,19 +1246,45 @@ export class GlobeManager {
                     });
             }
             
-            const line = new THREE.Line(lineGeometry, lineMaterial);
-            line.userData = { 
+            let line;
+            const thickness = this.settings.routes.thickness || 0;
+
+            if (thickness > 0) {
+                try {
+                    const curve = new THREE.CatmullRomCurve3(curvePoints);
+                    const tubeGeometry = new THREE.TubeGeometry(
+                        curve,
+                        curvePoints.length * 3,
+                        thickness * 0.01,
+                        8,
+                        false
+                    );
+
+                    const tubeMaterial = new THREE.MeshBasicMaterial({
+                        color: routeColor,
+                        transparent: this.settings.routes.style === 'glow',
+                        opacity: this.settings.routes.style === 'glow' ? 0.8 : 1.0
+                    });
+
+                    line = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                } catch (error) {
+                    console.error("Error creating tube for trajectory:", error);
+                    line = new THREE.Line(lineGeometry, lineMaterial);
+                }
+            } else {
+                line = new THREE.Line(lineGeometry, lineMaterial);
+
+                if (this.settings.routes.style === 'dash') {
+                    line.computeLineDistances();
+                }
+            }
+            line.userData = {
                 routeId,
                 type: 'route',
                 data: {
                     points: points
                 }
             };
-            
-            // Compute line lengths for dashed lines
-            if (this.settings.routes.style === 'dash') {
-                line.computeLineDistances();
-            }
             
             this.routesGroup.add(line);
             
@@ -1311,15 +1385,23 @@ export class GlobeManager {
         // Create lines for each segment
         segmentData.forEach(segment => {
             const lineGeometry = new THREE.BufferGeometry();
-            
+
             const startPos = this.latLonToVector3(segment.start_lat, segment.start_lon);
             const endPos = this.latLonToVector3(segment.end_lat, segment.end_lon);
-            
-            const positions = [
-                startPos.x, startPos.y, startPos.z,
-                endPos.x, endPos.y, endPos.z
-            ];
-            
+
+            const curvePoints = this.createGreatCircleCurve(
+                segment.start_lat,
+                segment.start_lon,
+                segment.end_lat,
+                segment.end_lon,
+                this.settings.routes.routeHeight
+            );
+
+            const positions = [];
+            curvePoints.forEach(p => {
+                positions.push(p.x, p.y, p.z);
+            });
+
             lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Calculate segment length for special variables
@@ -1426,48 +1508,32 @@ export class GlobeManager {
             // Use tube geometry for 3D thickness if specified
             let line;
             const thickness = this.settings.routes.thickness || 0;
-            
+
             if (thickness > 0) {
                 try {
-                    // Create points for a smoother tube
-                    const curvePoints = [];
-                    const tubeSegments = 12;
-                    
-                    for (let j = 0; j <= tubeSegments; j++) {
-                        const t = j / tubeSegments;
-                        const pos = new THREE.Vector3().lerpVectors(startPos, endPos, t);
-                        curvePoints.push(pos);
-                    }
-                    
-                    // Create a smooth curve
                     const curve = new THREE.CatmullRomCurve3(curvePoints);
-                    
-                    // Create tube geometry
                     const tubeGeometry = new THREE.TubeGeometry(
-                        curve,              // path
-                        tubeSegments,       // tubularSegments
-                        thickness * 0.01,   // radius
-                        8,                  // radiusSegments
-                        false               // closed
+                        curve,
+                        curvePoints.length * 3,
+                        thickness * 0.01,
+                        8,
+                        false
                     );
-                    
-                    // Create tube mesh
+
                     const tubeMaterial = new THREE.MeshBasicMaterial({
                         color: segmentColor,
                         transparent: this.settings.routes.style === 'glow',
                         opacity: this.settings.routes.style === 'glow' ? 0.8 : 1.0
                     });
-                    
+
                     line = new THREE.Mesh(tubeGeometry, tubeMaterial);
                 } catch (error) {
-                    console.error("Error creating tube for ordered trajectory:", error);
-                    // Fall back to regular line
+                    console.error("Error creating tube for segment:", error);
                     line = new THREE.Line(lineGeometry, lineMaterial);
                 }
             } else {
                 line = new THREE.Line(lineGeometry, lineMaterial);
-                
-                // Compute line distances for dashed lines
+
                 if (this.settings.routes.style === 'dash') {
                     line.computeLineDistances();
                 }
@@ -1994,6 +2060,11 @@ export class GlobeManager {
             this.refreshVisualization();
         }
     }
+
+    updateRouteHeight(height) {
+        this.settings.routes.routeHeight = height;
+        this.refreshVisualization();
+    }
     
     
     // Create legend for categories
@@ -2210,15 +2281,23 @@ export class GlobeManager {
         for (let i = 0; i < trajectoryData.length; i++) {
             const segment = trajectoryData[i];
             const lineGeometry = new THREE.BufferGeometry();
-            
+
             const startPos = this.latLonToVector3(segment.start_lat, segment.start_lon);
             const endPos = this.latLonToVector3(segment.end_lat, segment.end_lon);
-            
-            const positions = [
-                startPos.x, startPos.y, startPos.z,
-                endPos.x, endPos.y, endPos.z
-            ];
-            
+
+            const curvePoints = this.createGreatCircleCurve(
+                segment.start_lat,
+                segment.start_lon,
+                segment.end_lat,
+                segment.end_lon,
+                this.settings.routes.routeHeight
+            );
+
+            const positions = [];
+            curvePoints.forEach(p => {
+                positions.push(p.x, p.y, p.z);
+            });
+
             lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Determine color based on settings
@@ -2320,17 +2399,44 @@ export class GlobeManager {
                     });
             }
             
-            const line = new THREE.Line(lineGeometry, lineMaterial);
-            line.userData = { 
+            let line;
+            const thickness = this.settings.routes.thickness || 0;
+
+            if (thickness > 0) {
+                try {
+                    const curve = new THREE.CatmullRomCurve3(curvePoints);
+                    const tubeGeometry = new THREE.TubeGeometry(
+                        curve,
+                        curvePoints.length * 3,
+                        thickness * 0.01,
+                        8,
+                        false
+                    );
+
+                    const tubeMaterial = new THREE.MeshBasicMaterial({
+                        color: segmentColor,
+                        transparent: this.settings.routes.style === 'glow',
+                        opacity: this.settings.routes.style === 'glow' ? 0.8 : 1.0
+                    });
+
+                    line = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                } catch (error) {
+                    console.error("Error creating tube for ordered trajectory:", error);
+                    line = new THREE.Line(lineGeometry, lineMaterial);
+                }
+            } else {
+                line = new THREE.Line(lineGeometry, lineMaterial);
+
+                if (this.settings.routes.style === 'dash') {
+                    line.computeLineDistances();
+                }
+            }
+
+            line.userData = {
                 order: i,
                 type: 'ordered-segment',
                 data: segment
             };
-            
-            // Compute line distances for dashed lines
-            if (this.settings.routes.style === 'dash') {
-                line.computeLineDistances();
-            }
             
             this.routesGroup.add(line);
             
