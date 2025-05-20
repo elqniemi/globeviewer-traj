@@ -127,12 +127,15 @@ class GlobeViewerApp {
             // Show dash controls only when dash style is selected
             document.getElementById('dash-controls').classList.toggle('hidden', style !== 'dash');
             this.uiManager.updateLineStyle(style);
+            const thick = parseFloat(document.getElementById('route-thickness').value);
+            document.getElementById('thick-style-warning').classList.toggle('hidden', thick === 0);
         });
         
         // Route thickness (3D) control
         document.getElementById('route-thickness').addEventListener('input', (e) => {
             const thickness = parseFloat(e.target.value);
             document.getElementById('route-thickness-value').textContent = thickness;
+            document.getElementById('thick-style-warning').classList.toggle('hidden', thickness === 0);
             this.globeManager.updateRouteThickness(thickness);
         });
 

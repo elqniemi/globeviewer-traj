@@ -2053,11 +2053,20 @@ export class GlobeManager {
     
     updateRouteThickness(thickness) {
         console.log(`GlobeManager: Updating route thickness to ${thickness}`);
-        
+
         // Store the previous value
         const previousThickness = this.settings.routes.thickness;
         this.settings.routes.thickness = thickness;
-        
+
+        if (thickness > 0 && (this.settings.routes.style === 'dash' || this.settings.routes.style === 'arrow')) {
+            console.warn('Dashed and arrow styles are not supported for thick lines. Switching to solid.');
+            this.updateLineStyle('solid');
+        }
+
+        if (thickness > 0 && this.settings.routes.style === 'glow') {
+            this.setGlowEffect(true);
+        }
+
         // If thickness changed significantly, we need to recreate geometry
         if (Math.abs(previousThickness - thickness) > 0.01) {
             this.refreshVisualization();
@@ -2537,10 +2546,17 @@ export class GlobeManager {
     }
     
     updateLineStyle(style) {
+        if (this.settings.routes.thickness > 0 && (style === 'dash' || style === 'arrow')) {
+            console.warn('Dashed and arrow styles are not supported for thick lines. Falling back to solid.');
+            style = 'solid';
+        }
+
         this.settings.routes.style = style;
-        
+
         // Enable or disable glow effect
         this.setGlowEffect(style === 'glow');
+
+        this.refreshVisualization();
     }
     
     // Set bloom effect for glowing lines
