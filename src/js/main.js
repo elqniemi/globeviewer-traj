@@ -487,10 +487,12 @@ class GlobeViewerApp {
             this.activeManager = this.mapManager;
             document.getElementById('globe-container').classList.add('hidden');
             document.getElementById('map-container').classList.remove('hidden');
+            this.mapManager.handleResize();
         } else {
             this.activeManager = this.globeManager;
             document.getElementById('map-container').classList.add('hidden');
             document.getElementById('globe-container').classList.remove('hidden');
+            this.globeManager.handleResize();
         }
         this.uiManager.setManager(this.activeManager);
         this.uiManager.refreshVisualization();
