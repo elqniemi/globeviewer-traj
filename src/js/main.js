@@ -450,4 +450,13 @@ class GlobeViewerApp {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const app = new GlobeViewerApp();
-}); 
+
+    const panel = document.getElementById('options-panel');
+    const toggle = document.getElementById('options-toggle');
+    if (panel && toggle) {
+        toggle.addEventListener('click', () => {
+            panel.classList.toggle('translate-y-full');
+            panel.classList.toggle('md:translate-x-full');
+        });
+    }
+});
