@@ -14,7 +14,8 @@ export class MapManager {
             routes: {
                 color: '#ff0000',
                 width: 3,
-                flowMode: 'directional'
+                flowMode: 'directional',
+                style: 'solid'
             },
             points: {
                 color: '#ffffff',
@@ -77,6 +78,119 @@ export class MapManager {
         this.pointsLayer.eachLayer(layer => {
             if (layer.setRadius) layer.setRadius(size);
         });
+    }
+
+    updateLineStyle(style) {
+        this.settings.routes.style = style;
+        this.routesLayer.eachLayer(layer => {
+            if (style === 'dash') {
+                layer.setStyle({ dashArray: '5,5' });
+            } else {
+                layer.setStyle({ dashArray: null });
+            }
+        });
+
+    // New no-op or minimal implementations for UI compatibility
+    updateRouteColorMode(mode) {
+        this.settings.routes.colorMode = mode;
+    }
+
+    updateColorVariable(variable) {
+        this.settings.routes.variable = variable;
+    }
+
+    updateColorRamp(ramp) {
+        this.settings.routes.colorRamp = ramp;
+    }
+
+    updateCustomColors(startColor, endColor) {
+        if (!this.settings.routes.customColors) {
+            this.settings.routes.customColors = {};
+        }
+        this.settings.routes.customColors.start = startColor;
+        this.settings.routes.customColors.end = endColor;
+    }
+
+    updateTransform(transform, type) {
+        if (type === 'color') {
+            this.settings.routes.transform = transform;
+        } else if (type === 'width') {
+            this.settings.routes.widthTransform = transform;
+        } else if (type === 'pointSize') {
+            this.settings.points.sizeTransform = transform;
+        }
+    }
+
+    updateWidthMode(mode) {
+        this.settings.routes.widthMode = mode;
+    }
+
+    updateWidthVariable(variable) {
+        this.settings.routes.widthVariable = variable;
+    }
+
+    updateWidthRange(min, max) {
+        if (!this.settings.routes.widthRange) {
+            this.settings.routes.widthRange = {};
+        }
+        this.settings.routes.widthRange.min = min;
+        this.settings.routes.widthRange.max = max;
+    }
+
+    updateRouteThickness(thickness) {
+        this.settings.routes.thickness = thickness;
+    }
+
+    updateRouteHeight(height) {
+        this.settings.routes.routeHeight = height;
+    }
+
+    updateArcHeight(height) {
+        this.settings.routes.arcHeight = height;
+    }
+
+    updateDashSettings(dashSize, gapSize) {
+        if (!this.settings.routes.dashSettings) {
+            this.settings.routes.dashSettings = {};
+        }
+        this.settings.routes.dashSettings.dashSize = dashSize;
+        this.settings.routes.dashSettings.gapSize = gapSize;
+    }
+
+    updateFlowSettings(speed, pulseType, gradient) {
+        if (!this.settings.routes.animation) {
+            this.settings.routes.animation = {};
+        }
+        this.settings.routes.animation.speed = speed;
+        this.settings.routes.animation.pulseType = pulseType;
+        this.settings.routes.animation.gradient = gradient;
+    }
+
+    togglePoints(visible) {
+        this.settings.points.visible = visible;
+        if (visible) {
+            if (!this.map.hasLayer(this.pointsLayer)) {
+                this.map.addLayer(this.pointsLayer);
+            }
+        } else if (this.map.hasLayer(this.pointsLayer)) {
+            this.map.removeLayer(this.pointsLayer);
+        }
+    }
+
+    updatePointSizeMode(mode) {
+        this.settings.points.sizeMode = mode;
+    }
+
+    updatePointSizeVariable(variable) {
+        this.settings.points.sizeVariable = variable;
+    }
+
+    updatePointSizeRange(min, max) {
+        if (!this.settings.points.sizeRange) {
+            this.settings.points.sizeRange = {};
+        }
+        this.settings.points.sizeRange.min = min;
+        this.settings.points.sizeRange.max = max;
     }
 
     latLonToLatLng(lat, lon) {
@@ -149,6 +263,7 @@ export class MapManager {
             }
         });
 
+        const allCoords = [];
         edgesToDraw.forEach(e => {
             const start = pointsMap[e.source];
             const end = pointsMap[e.destination];
@@ -163,7 +278,15 @@ export class MapManager {
                 opacity: 0.8
             });
             line.addTo(this.routesLayer);
+            coords.forEach(c => allCoords.push(c));
         });
+
+        this.updateLineStyle(this.settings.routes.style);
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addTrajectoryPoints(data) {
@@ -171,6 +294,7 @@ export class MapManager {
         this.clearPoints();
         const Llib = window.L;
         const routes = {};
+        const allCoords = [];
         data.forEach(p => {
             if (!routes[p.route_id]) routes[p.route_id] = [];
             routes[p.route_id].push([p.lat, p.lon]);
@@ -181,26 +305,44 @@ export class MapManager {
                 fillOpacity: 0.8
             });
             marker.addTo(this.pointsLayer);
+            allCoords.push([p.lat, p.lon]);
         });
         Object.values(routes).forEach(path => {
             Llib.polyline(path, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
+            path.forEach(c => allCoords.push(c));
         });
+
+        this.updateLineStyle(this.settings.routes.style);
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addTrajectorySegments(data) {
         this.clearRoutes();
         this.clearPoints();
         const Llib = window.L;
+        const allCoords = [];
         data.forEach(seg => {
             const coords = [[seg.start_lat, seg.start_lon], [seg.end_lat, seg.end_lon]];
             Llib.polyline(coords, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
+            coords.forEach(c => allCoords.push(c));
         });
+
+        this.updateLineStyle(this.settings.routes.style);
+        if (allCoords.length > 0) {
+            const bounds = Llib.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.map.invalidateSize();
+        }
     }
 
     addOrderedTrajectories(data) {
