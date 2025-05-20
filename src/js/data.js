@@ -6,7 +6,7 @@ export class DataLoader {
             trajectoryPoints: null,
             trajectorySegments: null,
             orderedTrajectories: null,
-            odMatrix: {
+            connections: {
                 points: null,
                 edges: null
             }
@@ -15,7 +15,7 @@ export class DataLoader {
         this.categories = {
             trajectoryPoints: {},
             trajectorySegments: {},
-            odMatrix: {}
+            connections: {}
         };
     }
     
@@ -185,56 +185,56 @@ export class DataLoader {
         }
     }
     
-    // Load OD Matrix points from CSV
-    async loadODPoints(file) {
+    // Load connection points from CSV
+    async loadConnectionPoints(file) {
         try {
             const data = await this.parseCSV(file);
             
             // Validate required columns
             const requiredColumns = ['id', 'lat', 'lon'];
             if (!this.validateColumns(data[0], requiredColumns)) {
-                throw new Error('Missing required columns for OD Matrix points. Required: ' + requiredColumns.join(', '));
+                throw new Error('Missing required columns for connection points. Required: ' + requiredColumns.join(', '));
             }
             
-            this.data.odMatrix.points = data;
+            this.data.connections.points = data;
             return data;
         } catch (error) {
-            console.error('Error loading OD Matrix points:', error);
+            console.error('Error loading connection points:', error);
             throw error;
         }
     }
     
-    // Load OD Matrix edges from CSV
-    async loadODEdges(file) {
+    // Load connection edges from CSV
+    async loadConnectionEdges(file) {
         try {
             const data = await this.parseCSV(file);
             
             // Validate required columns
             const requiredColumns = ['source', 'destination'];
             if (!this.validateColumns(data[0], requiredColumns)) {
-                throw new Error('Missing required columns for OD Matrix edges. Required: ' + requiredColumns.join(', '));
+                throw new Error('Missing required columns for connection edges. Required: ' + requiredColumns.join(', '));
             }
             
             // Check for category column
             const hasCategory = 'category' in data[0];
             
             // Reset categories
-            this.categories.odMatrix = {};
+            this.categories.connections = {};
             
             // Extract categories if available
             if (hasCategory) {
                 data.forEach(edge => {
                     if (edge.category) {
                         const key = `${edge.source}-${edge.destination}`;
-                        this.categories.odMatrix[key] = edge.category;
+                        this.categories.connections[key] = edge.category;
                     }
                 });
             }
             
-            this.data.odMatrix.edges = data;
+            this.data.connections.edges = data;
             return data;
         } catch (error) {
-            console.error('Error loading OD Matrix edges:', error);
+            console.error('Error loading connection edges:', error);
             throw error;
         }
     }
@@ -261,11 +261,11 @@ export class DataLoader {
                 return {
                     data: this.data.orderedTrajectories
                 };
-            case 'od-matrix':
+            case 'connections':
                 return {
-                    points: this.data.odMatrix.points,
-                    edges: this.data.odMatrix.edges,
-                    categories: this.categories.odMatrix
+                    points: this.data.connections.points,
+                    edges: this.data.connections.edges,
+                    categories: this.categories.connections
                 };
             default:
                 return null;
@@ -281,8 +281,8 @@ export class DataLoader {
                 return !!this.data.trajectorySegments;
             case 'ordered-trajectories':
                 return !!this.data.orderedTrajectories;
-            case 'od-matrix':
-                return !!this.data.odMatrix.points && !!this.data.odMatrix.edges;
+            case 'connections':
+                return !!this.data.connections.points && !!this.data.connections.edges;
             default:
                 return false;
         }
@@ -294,7 +294,7 @@ export class DataLoader {
             trajectoryPoints: null,
             trajectorySegments: null,
             orderedTrajectories: null,
-            odMatrix: {
+            connections: {
                 points: null,
                 edges: null
             }
@@ -303,7 +303,7 @@ export class DataLoader {
         this.categories = {
             trajectoryPoints: {},
             trajectorySegments: {},
-            odMatrix: {}
+            connections: {}
         };
     }
 } 

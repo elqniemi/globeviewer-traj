@@ -61,6 +61,11 @@ class GlobeViewerApp {
         document.getElementById('data-type').addEventListener('change', (e) => {
             this.uiManager.handleDataTypeChange(e.target.value);
         });
+
+        // Example data selection
+        document.getElementById('example-select').addEventListener('change', (e) => {
+            this.uiManager.loadExampleData(e.target.value);
+        });
         
         // Load data button
         document.getElementById('load-data-btn').addEventListener('click', () => {
@@ -158,7 +163,7 @@ class GlobeViewerApp {
             this.updateDashSettings();
         });
         
-        // Arc height control (OD Matrix)
+        // Arc height control (connections)
         document.getElementById('arc-height').addEventListener('input', (e) => {
             const height = parseFloat(e.target.value);
             document.getElementById('arc-height-value').textContent = height.toFixed(1);

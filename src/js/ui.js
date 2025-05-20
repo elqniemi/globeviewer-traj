@@ -79,7 +79,7 @@ export class UIManager {
             case 'trajectory-segments':
                 document.getElementById('point-file').setAttribute('accept', '.csv');
                 break;
-            case 'od-matrix':
+            case 'connections':
                 document.getElementById('point-file').setAttribute('accept', '.csv');
                 document.getElementById('edge-file-container').classList.remove('hidden');
                 document.getElementById('arc-height-container').classList.remove('hidden');
@@ -257,11 +257,11 @@ export class UIManager {
                 case 'ordered-trajectories':
                     await this.loadOrderedTrajectories(pointFile);
                     break;
-                case 'od-matrix':
+                case 'connections':
                     if (!edgeFile) {
                         throw new Error('Please select both point and edge CSV files');
                     }
-                    await this.loadODMatrix(pointFile, edgeFile);
+                    await this.loadConnections(pointFile, edgeFile);
                     break;
             }
             
@@ -273,6 +273,45 @@ export class UIManager {
         } finally {
             this.hideLoadingOverlay();
         }
+    }
+
+    // Load predefined example data
+    async loadExampleData(example) {
+        if (!example) return;
+
+        // adjust UI to selected type
+        document.getElementById('data-type').value = example;
+        this.handleDataTypeChange(example);
+
+        const base = '/sample-data/';
+        switch (example) {
+            case 'trajectory-points': {
+                const resp = await fetch(base + 'trajectory-points.csv');
+                const blob = await resp.blob();
+                await this.loadTrajectoryPoints(blob);
+                break;
+            }
+            case 'trajectory-segments': {
+                const resp = await fetch(base + 'trajectory-segments.csv');
+                const blob = await resp.blob();
+                await this.loadTrajectorySegments(blob);
+                break;
+            }
+            case 'ordered-trajectories': {
+                const resp = await fetch(base + 'ordered-trajectories.csv');
+                const blob = await resp.blob();
+                await this.loadOrderedTrajectories(blob);
+                break;
+            }
+            case 'connections': {
+                const p = await fetch(base + 'connections-points.csv');
+                const e = await fetch(base + 'connections-edges.csv');
+                await this.loadConnections(await p.blob(), await e.blob());
+                break;
+            }
+        }
+
+        this.refreshVisualization();
     }
     
     // Load and process trajectory points data
@@ -335,16 +374,16 @@ export class UIManager {
         }
     }
     
-    // Load and process OD Matrix data
-    async loadODMatrix(pointsFile, edgesFile) {
+    // Load and process connection data
+    async loadConnections(pointsFile, edgesFile) {
         try {
             this.showLoadingOverlay();
             
             // Load points and edges
-            await this.dataLoader.loadODPoints(pointsFile);
-            await this.dataLoader.loadODEdges(edgesFile);
+            await this.dataLoader.loadConnectionPoints(pointsFile);
+            await this.dataLoader.loadConnectionEdges(edgesFile);
             
-            const { points, edges, categories } = this.dataLoader.getData('od-matrix');
+            const { points, edges, categories } = this.dataLoader.getData('connections');
             
             if (!points || points.length === 0) {
                 throw new Error('No valid point data found');
@@ -358,7 +397,7 @@ export class UIManager {
             document.getElementById('arc-height-container').classList.remove('hidden');
             
             // Update globe with loaded data
-            this.globeManager.addODMatrix(points, edges, categories);
+            this.globeManager.addConnections(points, edges, categories);
             
             this.hideLoadingOverlay();
         } catch (error) {
@@ -395,9 +434,9 @@ export class UIManager {
                 this.globeManager.addOrderedTrajectories(data);
                 break;
             }
-            case 'od-matrix': {
-                const { points, edges, categories } = this.dataLoader.getData('od-matrix');
-                this.globeManager.addODMatrix(points, edges, categories);
+            case 'connections': {
+                const { points, edges, categories } = this.dataLoader.getData('connections');
+                this.globeManager.addConnections(points, edges, categories);
                 break;
             }
         }
@@ -462,7 +501,7 @@ export class UIManager {
         this.globeManager.updateRouteHeight(routeHeight);
         
         // Arc height for OD matrix
-        if (this.currentDataType === 'od-matrix') {
+        if (this.currentDataType === 'connections') {
             const arcHeight = parseFloat(document.getElementById('arc-height').value);
             this.globeManager.updateArcHeight(arcHeight);
         }
