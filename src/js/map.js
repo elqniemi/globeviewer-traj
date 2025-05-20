@@ -34,7 +34,11 @@ export class MapManager {
     updateLightIntensity() {}
     updateAmbientIntensity() {}
     setReduceGlare() {}
-    handleResize() {}
+    handleResize() {
+        if (this.map && this.map.invalidateSize) {
+            this.map.invalidateSize();
+        }
+    }
     updateLightColor() {}
 
     setFlowMode(mode) {

@@ -21,6 +21,7 @@ Interactive 3D globe visualization for displaying geographical routes and trajec
   - Orbit, pan, and zoom around the globe
   - Mouse-over tooltips for points
   - Export the current view as PNG
+  - Switch between a 3D globe and a 2D map
 
 ## Installation
 
