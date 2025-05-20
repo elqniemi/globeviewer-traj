@@ -14,7 +14,8 @@ export class MapManager {
             routes: {
                 color: '#ff0000',
                 width: 3,
-                flowMode: 'directional'
+                flowMode: 'directional',
+                style: 'solid'
             },
             points: {
                 color: '#ffffff',
@@ -76,6 +77,17 @@ export class MapManager {
         // Leaflet circle markers use radius
         this.pointsLayer.eachLayer(layer => {
             if (layer.setRadius) layer.setRadius(size);
+        });
+    }
+
+    updateLineStyle(style) {
+        this.settings.routes.style = style;
+        this.routesLayer.eachLayer(layer => {
+            if (style === 'dash') {
+                layer.setStyle({ dashArray: '5,5' });
+            } else {
+                layer.setStyle({ dashArray: null });
+            }
         });
     }
 
@@ -164,6 +176,8 @@ export class MapManager {
             });
             line.addTo(this.routesLayer);
         });
+
+        this.updateLineStyle(this.settings.routes.style);
     }
 
     addTrajectoryPoints(data) {
@@ -188,6 +202,8 @@ export class MapManager {
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
         });
+
+        this.updateLineStyle(this.settings.routes.style);
     }
 
     addTrajectorySegments(data) {
@@ -201,6 +217,8 @@ export class MapManager {
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
         });
+
+        this.updateLineStyle(this.settings.routes.style);
     }
 
     addOrderedTrajectories(data) {
