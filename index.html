@@ -35,8 +35,19 @@
                         <select id="data-type" class="w-full bg-gray-700 text-white p-2 rounded">
                             <option value="trajectory-points">Trajectory Points (route_id, point_id, lat, lon, z)</option>
                             <option value="trajectory-segments">Trajectory Segments (segment_id, start_lat, start_lon, end_lat, end_lon)</option>
-                            <option value="od-matrix">OD Matrix (points + edges)</option>
+                            <option value="connections">Connections (points + edges)</option>
                             <option value="ordered-trajectories">Ordered Trajectories</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block mb-1">Example Data</label>
+                        <select id="example-select" class="w-full bg-gray-700 text-white p-2 rounded">
+                            <option value="">-- Select Example --</option>
+                            <option value="trajectory-points">Bird Migration Points</option>
+                            <option value="trajectory-segments">Example Segments</option>
+                            <option value="ordered-trajectories">Example Ordered Route</option>
+                            <option value="connections">Example Connections</option>
                         </select>
                     </div>
                     
@@ -207,7 +218,7 @@
                         </div>
                     </div>
                     
-                    <!-- Arc Height (OD Matrix) -->
+                    <!-- Arc Height (Connections) -->
                     <div id="arc-height-container" class="mb-3 hidden">
                         <label class="block mb-1">Arc Height</label>
                         <div class="flex items-center">

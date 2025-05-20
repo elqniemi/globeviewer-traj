@@ -1591,8 +1591,8 @@ export class GlobeManager {
         }
     }
     
-    // Add OD Matrix (points + edges)
-    addODMatrix(points, edges, categories = null) {
+    // Add connection network (points + edges)
+    addConnections(points, edges, categories = null) {
         this.clearRoutes();
         this.clearPoints();
         
@@ -2009,7 +2009,7 @@ export class GlobeManager {
             // Redraw with new arc height
             if (Object.keys(points).length > 0 && edges.length > 0) {
                 const pointsList = Object.values(points);
-                this.addODMatrix(pointsList, edges, categories);
+                this.addConnections(pointsList, edges, categories);
             }
         }
     }
@@ -2943,7 +2943,7 @@ export class GlobeManager {
         
         // Collect data from existing visualization
         if (visualizationType === 'edge') {
-            // OD Matrix
+            // Connection network
             this.routesGroup.children.forEach(route => {
                 if (route.userData && route.userData.data) {
                     routeData.push(route.userData.data);
@@ -2964,7 +2964,7 @@ export class GlobeManager {
             // Redraw with new settings
             if (Object.keys(pointData).length > 0 && routeData.length > 0) {
                 const pointsList = Object.values(pointData);
-                this.addODMatrix(pointsList, routeData, categories);
+                this.addConnections(pointsList, routeData, categories);
             }
         } else if (visualizationType === 'route') {
             // Trajectory points

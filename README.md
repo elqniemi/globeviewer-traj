@@ -7,7 +7,7 @@ Interactive 3D globe visualization for displaying geographical routes and trajec
 - **Flexible Data Input**: Import data in various formats via CSV:
   - Trajectory points (route_id, point_id, lat, lon, optional z)
   - Trajectory segments (segment_id, start_lat, start_lon, end_lat, end_lon)
-  - OD Matrix (points with id, lat, lon + edges with source, destination)
+  - Connection network (points with id, lat, lon + edges with source, destination)
   - Ordered trajectories with sequencing
 
 - **Customizable Styling**:
@@ -64,7 +64,7 @@ segment_id,start_lat,start_lon,end_lat,end_lon,category
 2,51.5074,-0.1278,48.8566,2.3522,leisure
 ```
 
-### OD Matrix Points
+### Connection Points
 ```
 id,lat,lon,name
 1,37.7749,-122.4194,San Francisco
@@ -72,7 +72,7 @@ id,lat,lon,name
 3,51.5074,-0.1278,London
 ```
 
-### OD Matrix Edges
+### Connection Edges
 ```
 source,destination,weight,category
 1,2,100,domestic
