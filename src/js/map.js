@@ -89,7 +89,7 @@ export class MapManager {
                 layer.setStyle({ dashArray: null });
             }
         });
-
+    }
 
     // New no-op or minimal implementations for UI compatibility
     updateRouteColorMode(mode) {

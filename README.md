@@ -97,6 +97,17 @@ The application is built with:
 - Tailwind CSS for styling
 - Vite for bundling
 
+### Building for Production
+To generate a static build with all dependencies bundled, run:
+
+```bash
+bun run build
+# or
+npm run build
+```
+
+The compiled files will be output to the `dist/` directory.
+
 ### Browser Support
 Wide line rendering uses Three.js `Line2` which requires WebGL2. If WebGL2 is unavailable, the app falls back to standard thin lines.
 
