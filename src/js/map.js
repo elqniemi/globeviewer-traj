@@ -90,6 +90,7 @@ export class MapManager {
             }
         });
 
+
     // New no-op or minimal implementations for UI compatibility
     updateRouteColorMode(mode) {
         this.settings.routes.colorMode = mode;
@@ -338,6 +339,7 @@ export class MapManager {
         });
 
         this.updateLineStyle(this.settings.routes.style);
+
         if (allCoords.length > 0) {
             const bounds = Llib.latLngBounds(allCoords);
             this.map.fitBounds(bounds, { padding: [20, 20] });
