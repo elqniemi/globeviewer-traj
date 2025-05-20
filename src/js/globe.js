@@ -2097,42 +2097,6 @@ export class GlobeManager {
         this.legend = legend;
     }
     
-    // Create gradient legend
-    createGradientLegend() {
-        this.removeLegend();
-        
-        const legend = document.createElement('div');
-        legend.classList.add('legend');
-        legend.innerHTML = '<div class="font-bold mb-2">Sequence</div>';
-        
-        const gradientBox = document.createElement('div');
-        gradientBox.style.height = '20px';
-        gradientBox.style.width = '100%';
-        gradientBox.style.background = 'linear-gradient(to right, #ff0000, #0000ff)';
-        gradientBox.style.borderRadius = '2px';
-        gradientBox.style.marginBottom = '4px';
-        
-        const labels = document.createElement('div');
-        labels.style.display = 'flex';
-        labels.style.justifyContent = 'space-between';
-        
-        const startLabel = document.createElement('div');
-        startLabel.textContent = 'Start';
-        startLabel.style.fontSize = '10px';
-        
-        const endLabel = document.createElement('div');
-        endLabel.textContent = 'End';
-        endLabel.style.fontSize = '10px';
-        
-        labels.appendChild(startLabel);
-        labels.appendChild(endLabel);
-        
-        legend.appendChild(gradientBox);
-        legend.appendChild(labels);
-        
-        this.container.appendChild(legend);
-        this.legend = legend;
-    }
     
     removeLegend() {
         if (this.legend && this.legend.parentNode) {
