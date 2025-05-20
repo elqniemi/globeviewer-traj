@@ -81,7 +81,7 @@
                             <select id="color-variable" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
                                 <!-- Will be populated dynamically -->
                             </select>
-                            
+
                             <label class="block mb-1">Color Ramp</label>
                             <select id="color-ramp" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
                                 <option value="viridis">Viridis</option>
@@ -96,15 +96,7 @@
                                 <option value="red-yellow-green">Red-Yellow-Green</option>
                                 <option value="custom">Custom...</option>
                             </select>
-                            
-                            <div id="custom-ramp-container" class="hidden">
-                                <label class="block mb-1">Start Color</label>
-                                <div id="ramp-start-color" class="color-picker mb-2"></div>
-                                
-                                <label class="block mb-1">End Color</label>
-                                <div id="ramp-end-color" class="color-picker mb-2"></div>
-                            </div>
-                            
+
                             <div class="mt-2">
                                 <label class="block mb-1">Transform</label>
                                 <select id="color-transform" class="w-full bg-gray-700 text-white p-2 rounded mb-2">
@@ -115,6 +107,14 @@
                                     <option value="norm">Normalize (0-1)</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <div id="custom-ramp-container" class="hidden mt-2">
+                            <label class="block mb-1">Start Color</label>
+                            <div id="ramp-start-color" class="color-picker mb-2"></div>
+
+                            <label class="block mb-1">End Color</label>
+                            <div id="ramp-end-color" class="color-picker mb-2"></div>
                         </div>
                     </div>
                     
