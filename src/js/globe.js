@@ -6,6 +6,9 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import * as SunCalc from 'suncalc';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 
 export class GlobeManager {
     constructor(containerId) {
@@ -744,6 +747,9 @@ export class GlobeManager {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height);
         this.composer.setSize(width, height);
+
+        // Update resolution for Line2 materials
+        this.updateLineResolutions(width, height);
     }
     
     render() {
@@ -1134,7 +1140,6 @@ export class GlobeManager {
         
         // Create lines for each route
         Object.entries(routes).forEach(([routeId, points]) => {
-            const lineGeometry = new THREE.BufferGeometry();
             const positions = [];
             const curvePoints = [];
 
@@ -1158,7 +1163,6 @@ export class GlobeManager {
                 return;
             }
 
-            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Determine line width based on settings
             let lineWidth = this.settings.routes.width;
@@ -1209,23 +1213,21 @@ export class GlobeManager {
             
             // Create material based on line style
             let lineMaterial;
-            
+
             switch(this.settings.routes.style) {
-                case 'dash':
-                    // Use custom dash settings if defined
+                case 'dash': {
                     const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
-                    
-                    lineMaterial = new THREE.LineDashedMaterial({
+                    lineMaterial = new LineMaterial({
                         color: routeColor,
                         linewidth: lineWidth,
-                        scale: 1,
                         dashSize: dashSettings.dashSize,
                         gapSize: dashSettings.gapSize
                     });
+                    lineMaterial.dashed = true;
                     break;
+                }
                 case 'glow':
-                    // Using normal line material but with bloom pass effect
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: routeColor,
                         linewidth: lineWidth,
                         transparent: true,
@@ -1233,18 +1235,21 @@ export class GlobeManager {
                     });
                     break;
                 case 'arrow':
-                    // Use standard line material, arrows added separately
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: routeColor,
                         linewidth: lineWidth
                     });
                     break;
-                default: // solid
-                    lineMaterial = new THREE.LineBasicMaterial({
+                default:
+                    lineMaterial = new LineMaterial({
                         color: routeColor,
                         linewidth: lineWidth
                     });
             }
+
+            const rendererSize = new THREE.Vector2();
+            this.renderer.getSize(rendererSize);
+            lineMaterial.resolution.set(rendererSize.x, rendererSize.y);
             
             let line;
             const thickness = this.settings.routes.thickness || 0;
@@ -1269,10 +1274,17 @@ export class GlobeManager {
                     line = new THREE.Mesh(tubeGeometry, tubeMaterial);
                 } catch (error) {
                     console.error("Error creating tube for trajectory:", error);
-                    line = new THREE.Line(lineGeometry, lineMaterial);
+                    const geometry = new LineGeometry();
+                    geometry.setPositions(positions);
+                    line = new Line2(geometry, lineMaterial);
+                    if (this.settings.routes.style === 'dash') {
+                        line.computeLineDistances();
+                    }
                 }
             } else {
-                line = new THREE.Line(lineGeometry, lineMaterial);
+                const geometry = new LineGeometry();
+                geometry.setPositions(positions);
+                line = new Line2(geometry, lineMaterial);
 
                 if (this.settings.routes.style === 'dash') {
                     line.computeLineDistances();
@@ -1384,7 +1396,6 @@ export class GlobeManager {
         
         // Create lines for each segment
         segmentData.forEach(segment => {
-            const lineGeometry = new THREE.BufferGeometry();
 
             const startPos = this.latLonToVector3(segment.start_lat, segment.start_lon);
             const endPos = this.latLonToVector3(segment.end_lat, segment.end_lon);
@@ -1402,7 +1413,6 @@ export class GlobeManager {
                 positions.push(p.x, p.y, p.z);
             });
 
-            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Calculate segment length for special variables
             const length = startPos.distanceTo(endPos);
@@ -1468,23 +1478,21 @@ export class GlobeManager {
             
             // Create material based on line style
             let lineMaterial;
-            
+
             switch(this.settings.routes.style) {
-                case 'dash':
-                    // Use custom dash settings if defined
+                case 'dash': {
                     const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
-                    
-                    lineMaterial = new THREE.LineDashedMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth,
-                        scale: 1,
                         dashSize: dashSettings.dashSize,
                         gapSize: dashSettings.gapSize
                     });
+                    lineMaterial.dashed = true;
                     break;
+                }
                 case 'glow':
-                    // Using normal line material but with bloom pass effect
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth,
                         transparent: true,
@@ -1492,18 +1500,21 @@ export class GlobeManager {
                     });
                     break;
                 case 'arrow':
-                    // Use standard line material, arrows added separately
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth
                     });
                     break;
-                default: // solid
-                    lineMaterial = new THREE.LineBasicMaterial({
+                default:
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth
                     });
             }
+
+            const rendererSize = new THREE.Vector2();
+            this.renderer.getSize(rendererSize);
+            lineMaterial.resolution.set(rendererSize.x, rendererSize.y);
             
             // Use tube geometry for 3D thickness if specified
             let line;
@@ -1529,10 +1540,17 @@ export class GlobeManager {
                     line = new THREE.Mesh(tubeGeometry, tubeMaterial);
                 } catch (error) {
                     console.error("Error creating tube for segment:", error);
-                    line = new THREE.Line(lineGeometry, lineMaterial);
+                    const geometry = new LineGeometry();
+                    geometry.setPositions(positions);
+                    line = new Line2(geometry, lineMaterial);
+                    if (this.settings.routes.style === 'dash') {
+                        line.computeLineDistances();
+                    }
                 }
             } else {
-                line = new THREE.Line(lineGeometry, lineMaterial);
+                const geometry = new LineGeometry();
+                geometry.setPositions(positions);
+                line = new Line2(geometry, lineMaterial);
 
                 if (this.settings.routes.style === 'dash') {
                     line.computeLineDistances();
@@ -1751,8 +1769,6 @@ export class GlobeManager {
                     positions.push(p.x, p.y, p.z);
                 });
                 
-                const lineGeometry = new THREE.BufferGeometry();
-                lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 
                 // Calculate edge length for special variables
                 const length = startPos.distanceTo(endPos);
@@ -1824,23 +1840,21 @@ export class GlobeManager {
                 
                 // Create material based on line style
                 let lineMaterial;
-                
+
                 switch(this.settings.routes.style) {
-                    case 'dash':
-                        // Use custom dash settings if defined
+                    case 'dash': {
                         const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
-                        
-                        lineMaterial = new THREE.LineDashedMaterial({
+                        lineMaterial = new LineMaterial({
                             color: edgeColor,
                             linewidth: lineWidth,
-                            scale: 1,
                             dashSize: dashSettings.dashSize,
                             gapSize: dashSettings.gapSize
                         });
+                        lineMaterial.dashed = true;
                         break;
+                    }
                     case 'glow':
-                        // Using normal line material but with bloom pass effect
-                        lineMaterial = new THREE.LineBasicMaterial({
+                        lineMaterial = new LineMaterial({
                             color: edgeColor,
                             linewidth: lineWidth,
                             transparent: true,
@@ -1848,18 +1862,21 @@ export class GlobeManager {
                         });
                         break;
                     case 'arrow':
-                        // Use standard line material, arrows added separately
-                        lineMaterial = new THREE.LineBasicMaterial({
+                        lineMaterial = new LineMaterial({
                             color: edgeColor,
                             linewidth: lineWidth
                         });
                         break;
-                    default: // solid
-                        lineMaterial = new THREE.LineBasicMaterial({
+                    default:
+                        lineMaterial = new LineMaterial({
                             color: edgeColor,
                             linewidth: lineWidth
                         });
                 }
+
+                const rendererSize = new THREE.Vector2();
+                this.renderer.getSize(rendererSize);
+                lineMaterial.resolution.set(rendererSize.x, rendererSize.y);
                 
                 let line;
                 
@@ -1894,18 +1911,17 @@ export class GlobeManager {
                     } catch (error) {
                         console.error("Error creating tube for arc:", error);
                         // Fall back to regular line
-                        line = new THREE.Line(lineGeometry, lineMaterial);
-                        
-                        // Compute line distances for dashed lines
+                        const geometry = new LineGeometry();
+                        geometry.setPositions(positions);
+                        line = new Line2(geometry, lineMaterial);
                         if (this.settings.routes.style === 'dash') {
                             line.computeLineDistances();
                         }
                     }
                 } else {
-                    // Standard line
-                    line = new THREE.Line(lineGeometry, lineMaterial);
-                    
-                    // Compute line distances for dashed lines
+                    const geometry = new LineGeometry();
+                    geometry.setPositions(positions);
+                    line = new Line2(geometry, lineMaterial);
                     if (this.settings.routes.style === 'dash') {
                         line.computeLineDistances();
                     }
@@ -2022,12 +2038,15 @@ export class GlobeManager {
             // Apply immediately to all routes
             this.routesGroup.children.forEach(line => {
                 if (line.material) {
-                    // For standard lines (not tubes)
-                    if (typeof line.material.linewidth !== 'undefined') {
+                    if (line.material.isLineMaterial) {
                         line.material.linewidth = width;
                         line.material.needsUpdate = true;
-                        
-                        // If it's a LineDashedMaterial, recompute distances
+                        if (line.material.dashed) {
+                            line.computeLineDistances();
+                        }
+                    } else if (typeof line.material.linewidth !== 'undefined') {
+                        line.material.linewidth = width;
+                        line.material.needsUpdate = true;
                         if (line.material instanceof THREE.LineDashedMaterial) {
                             line.computeLineDistances();
                         }
@@ -2280,7 +2299,6 @@ export class GlobeManager {
         // Create line geometries for each segment
         for (let i = 0; i < trajectoryData.length; i++) {
             const segment = trajectoryData[i];
-            const lineGeometry = new THREE.BufferGeometry();
 
             const startPos = this.latLonToVector3(segment.start_lat, segment.start_lon);
             const endPos = this.latLonToVector3(segment.end_lat, segment.end_lon);
@@ -2298,7 +2316,6 @@ export class GlobeManager {
                 positions.push(p.x, p.y, p.z);
             });
 
-            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             // Determine color based on settings
             let segmentColor;
@@ -2362,23 +2379,21 @@ export class GlobeManager {
             
             // Create material based on line style
             let lineMaterial;
-            
+
             switch(this.settings.routes.style) {
-                case 'dash':
-                    // Use custom dash settings if defined
+                case 'dash': {
                     const dashSettings = this.settings.routes.dashSettings || { dashSize: 0.1, gapSize: 0.05 };
-                    
-                    lineMaterial = new THREE.LineDashedMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth,
-                        scale: 1,
                         dashSize: dashSettings.dashSize,
                         gapSize: dashSettings.gapSize
                     });
+                    lineMaterial.dashed = true;
                     break;
+                }
                 case 'glow':
-                    // Using normal line material but with bloom pass effect
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth,
                         transparent: true,
@@ -2386,18 +2401,21 @@ export class GlobeManager {
                     });
                     break;
                 case 'arrow':
-                    // Use standard line material, arrows added separately
-                    lineMaterial = new THREE.LineBasicMaterial({
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth
                     });
                     break;
-                default: // solid
-                    lineMaterial = new THREE.LineBasicMaterial({
+                default:
+                    lineMaterial = new LineMaterial({
                         color: segmentColor,
                         linewidth: lineWidth
                     });
             }
+
+            const rendererSize = new THREE.Vector2();
+            this.renderer.getSize(rendererSize);
+            lineMaterial.resolution.set(rendererSize.x, rendererSize.y);
             
             let line;
             const thickness = this.settings.routes.thickness || 0;
@@ -2422,10 +2440,17 @@ export class GlobeManager {
                     line = new THREE.Mesh(tubeGeometry, tubeMaterial);
                 } catch (error) {
                     console.error("Error creating tube for ordered trajectory:", error);
-                    line = new THREE.Line(lineGeometry, lineMaterial);
+                    const geometry = new LineGeometry();
+                    geometry.setPositions(positions);
+                    line = new Line2(geometry, lineMaterial);
+                    if (this.settings.routes.style === 'dash') {
+                        line.computeLineDistances();
+                    }
                 }
             } else {
-                line = new THREE.Line(lineGeometry, lineMaterial);
+                const geometry = new LineGeometry();
+                geometry.setPositions(positions);
+                line = new Line2(geometry, lineMaterial);
 
                 if (this.settings.routes.style === 'dash') {
                     line.computeLineDistances();
@@ -2573,6 +2598,15 @@ export class GlobeManager {
     setGlowEffect(enabled) {
         this.bloomPass.enabled = enabled;
         this.effectsEnabled = enabled;
+    }
+
+    updateLineResolutions(width, height) {
+        const size = new THREE.Vector2(width, height);
+        this.routesGroup.traverse(obj => {
+            if (obj.material && obj.material.isLineMaterial) {
+                obj.material.resolution.copy(size);
+            }
+        });
     }
     
     // Add arrows to a line
@@ -2850,12 +2884,15 @@ export class GlobeManager {
         
         // Update existing dashed lines
         this.routesGroup.children.forEach(line => {
-            if (line.material && line.material instanceof THREE.LineDashedMaterial) {
+            if (line.material && line.material.isLineMaterial && line.material.dashed) {
                 line.material.dashSize = dashSize;
                 line.material.gapSize = gapSize;
                 line.material.needsUpdate = true;
-                
-                // Recalculate line distances for the new dash pattern
+                line.computeLineDistances();
+            } else if (line.material && line.material instanceof THREE.LineDashedMaterial) {
+                line.material.dashSize = dashSize;
+                line.material.gapSize = gapSize;
+                line.material.needsUpdate = true;
                 line.computeLineDistances();
             }
         });
