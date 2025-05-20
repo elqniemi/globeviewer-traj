@@ -192,6 +192,7 @@
                             <option value="glow">Glow</option>
                             <option value="dash">Dashed</option>
                             <option value="arrow">Arrowed</option>
+                            <option value="flow">Animated</option>
                         </select>
                         
                         <!-- Dash Style Options -->
@@ -203,6 +204,24 @@
                             <div class="flex items-center justify-between">
                                 <label class="block">Gap Size</label>
                                 <input type="number" id="gap-size" value="0.05" min="0.01" max="0.3" step="0.01" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                        </div>
+                        <!-- Flow Style Options -->
+                        <div id="flow-controls" class="mb-2 hidden">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block">Speed</label>
+                                <input type="number" id="flow-speed" value="1" min="0.1" max="5" step="0.1" class="w-16 bg-gray-700 text-white p-1 rounded">
+                            </div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block">Pulse</label>
+                                <select id="flow-pulse" class="bg-gray-700 text-white p-1 rounded">
+                                    <option value="smooth">Smooth</option>
+                                    <option value="step">Step</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <label class="block">Gradient</label>
+                                <input type="checkbox" id="flow-gradient" class="ml-2">
                             </div>
                         </div>
                     </div>
