@@ -1095,7 +1095,8 @@ export class GlobeManager {
         }
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Group points by route_id
         const routes = {};
@@ -1328,7 +1329,8 @@ export class GlobeManager {
         variableColumns.add('$length');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Find min/max values for data-driven styling if needed
         if (this.settings.routes.colorMode === 'variable' && this.settings.routes.variable) {
@@ -1591,7 +1593,8 @@ export class GlobeManager {
         variableColumns.add('$length');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Find unique columns for point size variables
         const pointSizeVariables = new Set();
@@ -2050,11 +2053,20 @@ export class GlobeManager {
     
     updateRouteThickness(thickness) {
         console.log(`GlobeManager: Updating route thickness to ${thickness}`);
-        
+
         // Store the previous value
         const previousThickness = this.settings.routes.thickness;
         this.settings.routes.thickness = thickness;
-        
+
+        if (thickness > 0 && (this.settings.routes.style === 'dash' || this.settings.routes.style === 'arrow')) {
+            console.warn('Dashed and arrow styles are not supported for thick lines. Switching to solid.');
+            this.updateLineStyle('solid');
+        }
+
+        if (thickness > 0 && this.settings.routes.style === 'glow') {
+            this.setGlowEffect(true);
+        }
+
         // If thickness changed significantly, we need to recreate geometry
         if (Math.abs(previousThickness - thickness) > 0.01) {
             this.refreshVisualization();
@@ -2097,7 +2109,6 @@ export class GlobeManager {
         this.legend = legend;
     }
     
-    // Create gradient legend
     createGradientLegend() {
         this.removeLegend();
         
@@ -2201,8 +2212,14 @@ export class GlobeManager {
     // Export image as PNG
     exportImage() {
         try {
-            this.renderer.render(this.scene, this.camera);
-            
+            if (this.effectsEnabled) {
+                // Render the scene with post-processing effects
+                this.composer.render();
+            } else {
+                // Render the scene directly without effects
+                this.renderer.render(this.scene, this.camera);
+            }
+
             // Create a direct download link
             const link = document.createElement('a');
             link.download = 'globe-view.png';
@@ -2233,7 +2250,8 @@ export class GlobeManager {
         variableColumns.add('$order');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Sort trajectories by order
         trajectoryData.sort((a, b) => a.order - b.order);
@@ -2464,11 +2482,11 @@ export class GlobeManager {
     }
     
     // Update variable options in UI
-    updateVariableOptions(variables) {
+    updateVariableOptions(variables, type = 'color') {
         // This will be implemented by the UI manager
         // Placeholder for potential event emitting
         if (typeof this.onVariablesUpdated === 'function') {
-            this.onVariablesUpdated(variables, 'color');
+            this.onVariablesUpdated(variables, type);
         }
     }
     
@@ -2563,10 +2581,17 @@ export class GlobeManager {
     }
     
     updateLineStyle(style) {
+        if (this.settings.routes.thickness > 0 && (style === 'dash' || style === 'arrow')) {
+            console.warn('Dashed and arrow styles are not supported for thick lines. Falling back to solid.');
+            style = 'solid';
+        }
+
         this.settings.routes.style = style;
-        
+
         // Enable or disable glow effect
         this.setGlowEffect(style === 'glow');
+
+        this.refreshVisualization();
     }
     
     // Set bloom effect for glowing lines
