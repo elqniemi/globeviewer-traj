@@ -81,7 +81,10 @@ class GlobeViewerApp {
         
         document.getElementById('color-ramp').addEventListener('change', (e) => {
             const isCustom = e.target.value === 'custom';
-            document.getElementById('custom-ramp-container').classList.toggle('hidden', !isCustom);
+            const mode = document.getElementById('color-mode').value;
+            if (mode === 'variable') {
+                document.getElementById('custom-ramp-container').classList.toggle('hidden', !isCustom);
+            }
             this.uiManager.refreshVisualization();
         });
         

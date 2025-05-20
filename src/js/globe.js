@@ -2108,7 +2108,7 @@ export class GlobeManager {
         const gradientBox = document.createElement('div');
         gradientBox.style.height = '20px';
         gradientBox.style.width = '100%';
-        gradientBox.style.background = 'linear-gradient(to right, #ff0000, #0000ff)';
+        gradientBox.style.background = `linear-gradient(to right, ${this.settings.routes.customColors.start}, ${this.settings.routes.customColors.end})`;
         gradientBox.style.borderRadius = '2px';
         gradientBox.style.marginBottom = '4px';
         
@@ -2306,8 +2306,8 @@ export class GlobeManager {
             if (this.settings.routes.colorMode === 'gradient') {
                 // Calculate color based on position in sequence
                 const ratio = i / (trajectoryData.length - 1);
-                const startColor = new THREE.Color(0xff0000); // Red
-                const endColor = new THREE.Color(0x0000ff); // Blue
+                const startColor = new THREE.Color(this.settings.routes.customColors.start);
+                const endColor = new THREE.Color(this.settings.routes.customColors.end);
                 segmentColor = new THREE.Color().lerpColors(startColor, endColor, ratio);
             } else if (this.settings.routes.colorMode === 'variable' && this.settings.routes.variable) {
                 let value;
@@ -2819,7 +2819,7 @@ export class GlobeManager {
         
         const gradientBox = document.createElement('div');
         gradientBox.classList.add('gradient-bar');
-        gradientBox.style.background = 'linear-gradient(to right, #ff0000, #0000ff)';
+        gradientBox.style.background = `linear-gradient(to right, ${this.settings.routes.customColors.start}, ${this.settings.routes.customColors.end})`;
         legend.appendChild(gradientBox);
         
         const labels = document.createElement('div');

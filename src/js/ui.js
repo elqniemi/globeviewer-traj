@@ -426,6 +426,12 @@ export class UIManager {
                 const endColor = this.colorPickers.rampEndColorPicker.getColor().toHEXA().toString();
                 this.globeManager.updateCustomColors(startColor, endColor);
             }
+        } else if (colorMode === 'gradient') {
+            if (this.colorPickers) {
+                const startColor = this.colorPickers.rampStartColorPicker.getColor().toHEXA().toString();
+                const endColor = this.colorPickers.rampEndColorPicker.getColor().toHEXA().toString();
+                this.globeManager.updateCustomColors(startColor, endColor);
+            }
         }
         
         // Route width settings
@@ -488,9 +494,22 @@ export class UIManager {
     
     // Update color mode
     updateColorMode(mode) {
-        document.getElementById('single-color-container').classList.toggle('hidden', mode !== 'single');
-        document.getElementById('variable-color-container').classList.toggle('hidden', mode !== 'variable');
-        
+        const singleContainer = document.getElementById('single-color-container');
+        const variableContainer = document.getElementById('variable-color-container');
+        const customRampContainer = document.getElementById('custom-ramp-container');
+
+        singleContainer.classList.toggle('hidden', mode !== 'single');
+        variableContainer.classList.toggle('hidden', mode !== 'variable');
+
+        if (mode === 'gradient') {
+            customRampContainer.classList.remove('hidden');
+        } else if (mode === 'variable') {
+            const ramp = document.getElementById('color-ramp').value;
+            customRampContainer.classList.toggle('hidden', ramp !== 'custom');
+        } else {
+            customRampContainer.classList.add('hidden');
+        }
+
         this.globeManager.updateRouteColorMode(mode);
         this.refreshVisualization();
     }
