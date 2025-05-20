@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GlobeManager } from './globe.js';
+import { MapManager } from './map.js';
 import { DataLoader } from './data.js';
 import { UIManager } from './ui.js';
 
@@ -17,8 +18,10 @@ class GlobeViewerApp {
     constructor() {
         // Initialize components
         this.globeManager = new GlobeManager('globe-scene');
+        this.mapManager = new MapManager('map');
+        this.activeManager = this.globeManager;
         this.dataLoader = new DataLoader();
-        this.uiManager = new UIManager(this.globeManager, this.dataLoader);
+        this.uiManager = new UIManager(this.activeManager, this.dataLoader);
         
         // Setup event listeners
         this.setupEventListeners();
@@ -34,12 +37,15 @@ class GlobeViewerApp {
     }
     
     initUIState() {
+        const viewMode = document.getElementById('view-mode').value;
+        this.switchViewMode(viewMode);
+
         // Set initial lighting mode
         const lightingMode = document.getElementById('lighting-mode').value;
         document.getElementById('day-controls').classList.toggle('hidden', lightingMode !== 'day');
         
         // Apply initial lighting preset
-        this.globeManager.setLightingPreset(lightingMode);
+        this.activeManager.setLightingPreset(lightingMode);
         
         // Set initial sun position if in day mode
         if (lightingMode === 'day') {
@@ -55,7 +61,11 @@ class GlobeViewerApp {
     setupEventListeners() {
         // Export PNG button
         document.getElementById('export-btn').addEventListener('click', () => {
-            this.globeManager.exportImage();
+            this.activeManager.exportImage();
+        });
+
+        document.getElementById('view-mode').addEventListener('change', (e) => {
+            this.switchViewMode(e.target.value);
         });
         
         // Data type change
@@ -146,14 +156,14 @@ class GlobeViewerApp {
             const thickness = parseFloat(e.target.value);
             document.getElementById('route-thickness-value').textContent = thickness;
             document.getElementById('thick-style-warning').classList.toggle('hidden', thickness === 0);
-            this.globeManager.updateRouteThickness(thickness);
+            this.activeManager.updateRouteThickness(thickness);
         });
 
         // Route height control
         document.getElementById('route-height').addEventListener('input', (e) => {
             const h = parseFloat(e.target.value);
             document.getElementById('route-height-value').textContent = h.toFixed(2);
-            this.globeManager.updateRouteHeight(h);
+            this.activeManager.updateRouteHeight(h);
         });
         
         // Dash controls
@@ -182,7 +192,11 @@ class GlobeViewerApp {
         document.getElementById('arc-height').addEventListener('input', (e) => {
             const height = parseFloat(e.target.value);
             document.getElementById('arc-height-value').textContent = height.toFixed(1);
-            this.globeManager.updateArcHeight(height);
+            this.activeManager.updateArcHeight(height);
+        });
+
+        document.getElementById('flow-mode').addEventListener('change', (e) => {
+            this.uiManager.updateFlowMode(e.target.value);
         });
         
         // Point styling controls
@@ -228,21 +242,21 @@ class GlobeViewerApp {
         document.getElementById('background-style').addEventListener('change', (e) => {
             const isSolid = e.target.value === 'solid';
             document.getElementById('bg-color-container').classList.toggle('hidden', !isSolid);
-            this.globeManager.updateBackgroundStyle(e.target.value);
+            this.activeManager.updateBackgroundStyle(e.target.value);
         });
         
         // Atmosphere style
         document.getElementById('atmosphere-style').addEventListener('change', (e) => {
             const isNone = e.target.value === 'none';
             document.getElementById('atmosphere-settings').classList.toggle('hidden', isNone);
-            this.globeManager.updateAtmosphereStyle(e.target.value);
+            this.activeManager.updateAtmosphereStyle(e.target.value);
         });
         
         // Atmosphere intensity
         document.getElementById('atmosphere-intensity').addEventListener('input', (e) => {
             const intensity = parseFloat(e.target.value);
             document.getElementById('atmosphere-intensity-value').textContent = intensity.toFixed(1);
-            this.globeManager.updateAtmosphere(intensity);
+            this.activeManager.updateAtmosphere(intensity);
         });
         
         // Lighting mode
@@ -252,7 +266,7 @@ class GlobeViewerApp {
             document.getElementById('day-controls').classList.toggle('hidden', mode !== 'day');
             
             // Apply the selected lighting mode
-            this.globeManager.setLightingPreset(mode);
+            this.activeManager.setLightingPreset(mode);
             
             // Update sun position if day is selected
             if (mode === 'day') {
@@ -273,42 +287,42 @@ class GlobeViewerApp {
         document.getElementById('light-intensity').addEventListener('input', (e) => {
             const intensity = parseFloat(e.target.value);
             document.getElementById('light-intensity-value').textContent = intensity.toFixed(1);
-            this.globeManager.updateLightIntensity(intensity);
+            this.activeManager.updateLightIntensity(intensity);
         });
         
         document.getElementById('ambient-intensity').addEventListener('input', (e) => {
             const intensity = parseFloat(e.target.value);
             document.getElementById('ambient-intensity-value').textContent = intensity.toFixed(1);
-            this.globeManager.updateAmbientIntensity(intensity);
+            this.activeManager.updateAmbientIntensity(intensity);
         });
         
         document.getElementById('reduce-glare').addEventListener('change', (e) => {
-            this.globeManager.setReduceGlare(e.target.checked);
+            this.activeManager.setReduceGlare(e.target.checked);
         });
         
         // Handle window resize
         window.addEventListener('resize', () => {
-            this.globeManager.handleResize();
+            this.activeManager.handleResize();
         });
     }
     
     updateSunPosition() {
         const latitude = parseFloat(document.getElementById('sun-ns').value);
         const longitude = parseFloat(document.getElementById('sun-ew').value);
-        this.globeManager.updateSunPosition(latitude, longitude);
+        this.activeManager.updateSunPosition(latitude, longitude);
     }
     
     updateDashSettings() {
         const dashSize = parseFloat(document.getElementById('dash-size').value);
         const gapSize = parseFloat(document.getElementById('gap-size').value);
-        this.globeManager.updateDashSettings(dashSize, gapSize);
+        this.activeManager.updateDashSettings(dashSize, gapSize);
     }
 
     updateFlowSettings() {
         const speed = parseFloat(document.getElementById('flow-speed').value);
         const pulse = document.getElementById('flow-pulse').value;
         const gradient = document.getElementById('flow-gradient').checked;
-        this.globeManager.updateFlowSettings(speed, pulse, gradient);
+        this.activeManager.updateFlowSettings(speed, pulse, gradient);
     }
     
     initColorPickers() {
@@ -427,7 +441,7 @@ class GlobeViewerApp {
         
         bgColorPicker.on('change', (color) => {
             const hexColor = color.toHEXA().toString();
-            this.globeManager.updateBackgroundColor(hexColor);
+            this.activeManager.updateBackgroundColor(hexColor);
         });
         
         // Light color picker
@@ -451,7 +465,7 @@ class GlobeViewerApp {
         
         lightColorPicker.on('change', (color) => {
             const hexColor = color.toHEXA().toString();
-            this.globeManager.updateLightColor(hexColor);
+            this.activeManager.updateLightColor(hexColor);
         });
         
         // Store color pickers for later access
@@ -467,10 +481,24 @@ class GlobeViewerApp {
         // Add them to the UI manager
         this.uiManager.setColorPickers(this.colorPickers);
     }
+
+    switchViewMode(mode) {
+        if (mode === 'map') {
+            this.activeManager = this.mapManager;
+            document.getElementById('globe-container').classList.add('hidden');
+            document.getElementById('map-container').classList.remove('hidden');
+        } else {
+            this.activeManager = this.globeManager;
+            document.getElementById('map-container').classList.add('hidden');
+            document.getElementById('globe-container').classList.remove('hidden');
+        }
+        this.uiManager.setManager(this.activeManager);
+        this.uiManager.refreshVisualization();
+    }
     
     animate() {
         requestAnimationFrame(() => this.animate());
-        this.globeManager.render();
+        this.activeManager.render();
     }
 }
 

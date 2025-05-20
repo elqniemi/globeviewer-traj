@@ -68,7 +68,8 @@ export class GlobeManager {
                     speed: 1,
                     pulseType: 'smooth',
                     gradient: false
-                }
+                },
+                flowMode: 'directional'
             },
             points: {
                 visible: true,
@@ -278,6 +279,10 @@ export class GlobeManager {
                 this.hemisphereLight.intensity = 0.3;
                 break;
         }
+    }
+
+    setFlowMode(mode) {
+        this.settings.routes.flowMode = mode;
     }
     
     updateSunPosition(latitude, longitude) {
@@ -1763,6 +1768,24 @@ export class GlobeManager {
             sphere.userData = { pointId: point.id, data: point };
             this.pointsGroup.add(sphere);
         });
+
+        // Prepare edge grouping for offset and aggregation
+        const pairMap = {};
+        edges.forEach(e => {
+            const key = [e.source, e.destination].sort().join('-');
+            if (!pairMap[key]) pairMap[key] = { ab: [], ba: [], cross: null };
+            if (e.source <= e.destination) pairMap[key].ab.push(e); else pairMap[key].ba.push(e);
+        });
+
+        // Compute cross vectors for each pair
+        Object.keys(pairMap).forEach(key => {
+            const ids = key.split('-');
+            const a = pointsMap[ids[0]];
+            const b = pointsMap[ids[1]];
+            if (a && b) {
+                pairMap[key].cross = new THREE.Vector3().crossVectors(a, b).normalize();
+            }
+        });
         
         // Find min/max values for data-driven styling if needed for edges
         if (this.settings.routes.colorMode === 'variable' && this.settings.routes.variable) {
@@ -1820,11 +1843,40 @@ export class GlobeManager {
         // Enable or disable glow effect
         this.setGlowEffect(this.settings.routes.style === 'glow');
         
+        // Prepare list of edges with offsets based on flow mode
+        const edgesToDraw = [];
+        Object.keys(pairMap).forEach(key => {
+            const pair = pairMap[key];
+            if (this.settings.routes.flowMode === 'total') {
+                const list = pair.ab.concat(pair.ba);
+                if (list.length === 0) return;
+                const base = { ...list[0] };
+                for (let i = 1; i < list.length; i++) {
+                    const e = list[i];
+                    for (const k in e) {
+                        if (typeof e[k] === 'number') base[k] = (base[k] || 0) + e[k];
+                    }
+                }
+                base._offset = 0;
+                base._pairKey = key;
+                edgesToDraw.push(base);
+            } else {
+                pair.ab.forEach(e => { e._offset = 1; e._pairKey = key; edgesToDraw.push(e); });
+                pair.ba.forEach(e => { e._offset = -1; e._pairKey = key; edgesToDraw.push(e); });
+            }
+        });
+
         // Create lines for each edge
-        edges.forEach(edge => {
+        edgesToDraw.forEach(edge => {
             if (pointsMap[edge.source] && pointsMap[edge.destination]) {
-                const startPos = pointsMap[edge.source];
-                const endPos = pointsMap[edge.destination];
+                let startPos = pointsMap[edge.source];
+                let endPos = pointsMap[edge.destination];
+                const pair = pairMap[edge._pairKey];
+                if (edge._offset && pair && pair.cross) {
+                    const offsetAmount = 0.01 * edge._offset;
+                    startPos = startPos.clone().add(pair.cross.clone().multiplyScalar(offsetAmount));
+                    endPos = endPos.clone().add(pair.cross.clone().multiplyScalar(offsetAmount));
+                }
                 
                 // Create a curved line
                 const distance = startPos.distanceTo(endPos);

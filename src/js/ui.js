@@ -1,8 +1,8 @@
 // UI Manager - Handles user interactions and visualization updates
 
 export class UIManager {
-    constructor(globeManager, dataLoader) {
-        this.globeManager = globeManager;
+    constructor(manager, dataLoader) {
+        this.manager = manager;
         this.dataLoader = dataLoader;
         
         // Track current data type
@@ -18,7 +18,12 @@ export class UIManager {
         this.initEventListeners();
         
         // Set up event handler for variables update
-        this.globeManager.onVariablesUpdated = this.handleVariablesUpdated.bind(this);
+        this.manager.onVariablesUpdated = this.handleVariablesUpdated.bind(this);
+    }
+
+    setManager(manager) {
+        this.manager = manager;
+        this.manager.onVariablesUpdated = this.handleVariablesUpdated.bind(this);
     }
     
     // Set the color pickers from main.js
@@ -30,12 +35,12 @@ export class UIManager {
     initEventListeners() {
         // Background style change
         document.getElementById('background-style').addEventListener('change', (e) => {
-            this.globeManager.updateBackgroundStyle(e.target.value);
+            this.manager.updateBackgroundStyle(e.target.value);
         });
         
         // Atmosphere style change
         document.getElementById('atmosphere-style').addEventListener('change', (e) => {
-            this.globeManager.updateAtmosphereStyle(e.target.value);
+            this.manager.updateAtmosphereStyle(e.target.value);
         });
         
         // File inputs change
@@ -70,6 +75,7 @@ export class UIManager {
         document.getElementById('point-file-container').classList.remove('hidden');
         document.getElementById('edge-file-container').classList.add('hidden');
         document.getElementById('arc-height-container').classList.add('hidden');
+        document.getElementById('flow-mode-container').classList.add('hidden');
         
         // Update UI based on data type
         switch (dataType) {
@@ -83,6 +89,7 @@ export class UIManager {
                 document.getElementById('point-file').setAttribute('accept', '.csv');
                 document.getElementById('edge-file-container').classList.remove('hidden');
                 document.getElementById('arc-height-container').classList.remove('hidden');
+                document.getElementById('flow-mode-container').classList.remove('hidden');
                 break;
             case 'ordered-trajectories':
                 document.getElementById('point-file').setAttribute('accept', '.csv,.json,.geojson');
@@ -146,6 +153,9 @@ export class UIManager {
         const arcHeight = document.getElementById('arc-height');
         arcHeight.value = 0.4;
         document.getElementById('arc-height-value').textContent = '0.4';
+
+        const flowMode = document.getElementById('flow-mode');
+        if (flowMode) flowMode.value = 'directional';
         
         // Reset point visibility
         document.getElementById('show-points').checked = true;
@@ -238,8 +248,8 @@ export class UIManager {
             const edgeFile = document.getElementById('edge-file').files[0];
             
             // Reset any existing data
-            this.globeManager.clearRoutes();
-            this.globeManager.clearPoints();
+            this.manager.clearRoutes();
+            this.manager.clearPoints();
             
             // Check for required files
             if (!pointFile) {
@@ -326,7 +336,7 @@ export class UIManager {
             }
             
             // Update globe with loaded data
-            this.globeManager.addTrajectoryPoints(data, categories);
+            this.manager.addTrajectoryPoints(data, categories);
             
         } catch (error) {
             console.error('Error loading trajectory points:', error);
@@ -346,7 +356,7 @@ export class UIManager {
             }
             
             // Update globe with loaded data
-            this.globeManager.addTrajectorySegments(data, categories);
+            this.manager.addTrajectorySegments(data, categories);
             
         } catch (error) {
             console.error('Error loading trajectory segments:', error);
@@ -366,7 +376,7 @@ export class UIManager {
             }
             
             // Update globe with loaded data
-            this.globeManager.addOrderedTrajectories(data);
+            this.manager.addOrderedTrajectories(data);
             
         } catch (error) {
             console.error('Error loading ordered trajectories:', error);
@@ -397,7 +407,7 @@ export class UIManager {
             document.getElementById('arc-height-container').classList.remove('hidden');
             
             // Update globe with loaded data
-            this.globeManager.addConnections(points, edges, categories);
+            this.manager.addConnections(points, edges, categories);
             
             this.hideLoadingOverlay();
         } catch (error) {
@@ -421,22 +431,22 @@ export class UIManager {
         switch (dataType) {
             case 'trajectory-points': {
                 const { data, categories } = this.dataLoader.getData('trajectory-points');
-                this.globeManager.addTrajectoryPoints(data, categories);
+                this.manager.addTrajectoryPoints(data, categories);
                 break;
             }
             case 'trajectory-segments': {
                 const { data, categories } = this.dataLoader.getData('trajectory-segments');
-                this.globeManager.addTrajectorySegments(data, categories);
+                this.manager.addTrajectorySegments(data, categories);
                 break;
             }
             case 'ordered-trajectories': {
                 const { data } = this.dataLoader.getData('ordered-trajectories');
-                this.globeManager.addOrderedTrajectories(data);
+                this.manager.addOrderedTrajectories(data);
                 break;
             }
             case 'connections': {
                 const { points, edges, categories } = this.dataLoader.getData('connections');
-                this.globeManager.addConnections(points, edges, categories);
+                this.manager.addConnections(points, edges, categories);
                 break;
             }
         }
@@ -446,85 +456,87 @@ export class UIManager {
     updateGlobeSettings() {
         // Route color settings
         const colorMode = document.getElementById('color-mode').value;
-        this.globeManager.updateRouteColorMode(colorMode);
+        this.manager.updateRouteColorMode(colorMode);
         
         if (colorMode === 'variable') {
             const colorVariable = document.getElementById('color-variable').value;
             const colorRamp = document.getElementById('color-ramp').value;
             const colorTransform = document.getElementById('color-transform').value;
             
-            this.globeManager.updateColorVariable(colorVariable);
-            this.globeManager.updateColorRamp(colorRamp);
-            this.globeManager.updateTransform(colorTransform, 'color');
+            this.manager.updateColorVariable(colorVariable);
+            this.manager.updateColorRamp(colorRamp);
+            this.manager.updateTransform(colorTransform, 'color');
             
             if (colorRamp === 'custom' && this.colorPickers) {
                 const startColor = this.colorPickers.rampStartColorPicker.getColor().toHEXA().toString();
                 const endColor = this.colorPickers.rampEndColorPicker.getColor().toHEXA().toString();
-                this.globeManager.updateCustomColors(startColor, endColor);
+                this.manager.updateCustomColors(startColor, endColor);
             }
         } else if (colorMode === 'gradient') {
             if (this.colorPickers) {
                 const startColor = this.colorPickers.rampStartColorPicker.getColor().toHEXA().toString();
                 const endColor = this.colorPickers.rampEndColorPicker.getColor().toHEXA().toString();
-                this.globeManager.updateCustomColors(startColor, endColor);
+                this.manager.updateCustomColors(startColor, endColor);
             }
         }
         
         // Route width settings
         const widthMode = document.getElementById('width-mode').value;
-        this.globeManager.updateWidthMode(widthMode);
+        this.manager.updateWidthMode(widthMode);
         
         if (widthMode === 'fixed') {
             const routeWidth = parseFloat(document.getElementById('route-width').value);
-            this.globeManager.updateRouteWidth(routeWidth);
+            this.manager.updateRouteWidth(routeWidth);
         } else {
             const widthVariable = document.getElementById('width-variable').value;
             const minWidth = parseFloat(document.getElementById('min-width').value);
             const maxWidth = parseFloat(document.getElementById('max-width').value);
             const widthTransform = document.getElementById('width-transform').value;
             
-            this.globeManager.updateWidthVariable(widthVariable);
-            this.globeManager.updateWidthRange(minWidth, maxWidth);
-            this.globeManager.updateTransform(widthTransform, 'width');
+            this.manager.updateWidthVariable(widthVariable);
+            this.manager.updateWidthRange(minWidth, maxWidth);
+            this.manager.updateTransform(widthTransform, 'width');
         }
         
         // Line style
         const lineStyle = document.getElementById('line-style').value;
-        this.globeManager.updateLineStyle(lineStyle);
+        this.manager.updateLineStyle(lineStyle);
         
         // 3D thickness
         const thickness = parseFloat(document.getElementById('route-thickness').value);
-        this.globeManager.updateRouteThickness(thickness);
+        this.manager.updateRouteThickness(thickness);
 
         // Route height
         const routeHeight = parseFloat(document.getElementById('route-height').value);
-        this.globeManager.updateRouteHeight(routeHeight);
+        this.manager.updateRouteHeight(routeHeight);
         
         // Arc height for OD matrix
         if (this.currentDataType === 'connections') {
             const arcHeight = parseFloat(document.getElementById('arc-height').value);
-            this.globeManager.updateArcHeight(arcHeight);
+            this.manager.updateArcHeight(arcHeight);
+            const flowMode = document.getElementById('flow-mode').value;
+            if (this.manager.setFlowMode) this.manager.setFlowMode(flowMode);
         }
         
         // Point styling
         const showPoints = document.getElementById('show-points').checked;
-        this.globeManager.togglePoints(showPoints);
+        this.manager.togglePoints(showPoints);
         
         const pointSizeMode = document.getElementById('point-size-mode').value;
-        this.globeManager.updatePointSizeMode(pointSizeMode);
+        this.manager.updatePointSizeMode(pointSizeMode);
         
         if (pointSizeMode === 'fixed') {
             const pointSize = parseFloat(document.getElementById('point-size').value);
-            this.globeManager.updatePointSize(pointSize);
+            this.manager.updatePointSize(pointSize);
         } else {
             const pointSizeVariable = document.getElementById('point-size-variable').value;
             const minPointSize = parseFloat(document.getElementById('min-point-size').value);
             const maxPointSize = parseFloat(document.getElementById('max-point-size').value);
             const pointSizeTransform = document.getElementById('point-size-transform').value;
             
-            this.globeManager.updatePointSizeVariable(pointSizeVariable);
-            this.globeManager.updatePointSizeRange(minPointSize, maxPointSize);
-            this.globeManager.updateTransform(pointSizeTransform, 'pointSize');
+            this.manager.updatePointSizeVariable(pointSizeVariable);
+            this.manager.updatePointSizeRange(minPointSize, maxPointSize);
+            this.manager.updateTransform(pointSizeTransform, 'pointSize');
         }
     }
     
@@ -546,48 +558,55 @@ export class UIManager {
             customRampContainer.classList.add('hidden');
         }
 
-        this.globeManager.updateRouteColorMode(mode);
+        this.manager.updateRouteColorMode(mode);
         this.refreshVisualization();
     }
     
     // Update width mode
     updateWidthMode(mode) {
-        this.globeManager.updateWidthMode(mode);
+        this.manager.updateWidthMode(mode);
+        this.refreshVisualization();
+    }
+
+    updateFlowMode(mode) {
+        if (this.manager.setFlowMode) {
+            this.manager.setFlowMode(mode);
+        }
         this.refreshVisualization();
     }
     
     // Update route styling
     updateRouteColor(color) {
-        this.globeManager.updateRouteColor(color);
+        this.manager.updateRouteColor(color);
     }
     
     updateRouteWidth(width) {
         console.log(`UI: Updating route width to ${width}`);
-        this.globeManager.updateRouteWidth(width);
+        this.manager.updateRouteWidth(width);
     }
     
     updateLineStyle(style) {
-        this.globeManager.updateLineStyle(style);
+        this.manager.updateLineStyle(style);
         this.refreshVisualization();
     }
     
     // Update point styling
     togglePoints(visible) {
-        this.globeManager.togglePoints(visible);
+        this.manager.togglePoints(visible);
     }
     
     updatePointSizeMode(mode) {
-        this.globeManager.updatePointSizeMode(mode);
+        this.manager.updatePointSizeMode(mode);
         this.refreshVisualization();
     }
     
     updatePointSize(size) {
-        this.globeManager.updatePointSize(size);
+        this.manager.updatePointSize(size);
         this.refreshVisualization();
     }
     
     updatePointColor(color) {
-        this.globeManager.updatePointColor(color);
+        this.manager.updatePointColor(color);
     }
     
     // Show loading overlay

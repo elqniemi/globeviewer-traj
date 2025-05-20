@@ -6,6 +6,7 @@
     <title>Globe Viewer</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="src/css/styles.css">
 </head>
 <body class="bg-gray-900 text-white h-screen overflow-hidden relative">
@@ -15,6 +16,10 @@
         <button id="export-btn" class="absolute top-4 right-4 bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded z-20">
             Export PNG
         </button>
+    </div>
+    <!-- Map Container -->
+    <div id="map-container" class="absolute inset-0 hidden">
+        <div id="map" class="w-full h-full"></div>
     </div>
 
     <!-- Toggle button -->
@@ -37,6 +42,13 @@
                             <option value="trajectory-segments">Trajectory Segments (segment_id, start_lat, start_lon, end_lat, end_lon)</option>
                             <option value="connections">Connections (points + edges)</option>
                             <option value="ordered-trajectories">Ordered Trajectories</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">View Mode</label>
+                        <select id="view-mode" class="w-full bg-gray-700 text-white p-2 rounded">
+                            <option value="globe">3D Globe</option>
+                            <option value="map">2D Map</option>
                         </select>
                     </div>
 
@@ -246,6 +258,13 @@
                         </div>
                         <p class="text-xs text-gray-400 mt-1">0 = surface level, higher values create taller arcs</p>
                     </div>
+                    <div id="flow-mode-container" class="mb-3 hidden">
+                        <label class="block mb-1">Flow Mode</label>
+                        <select id="flow-mode" class="w-full bg-gray-700 text-white p-2 rounded">
+                            <option value="directional">Directional</option>
+                            <option value="total">Total</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <!-- Point Styling -->
@@ -411,6 +430,7 @@
             </div>
 
     <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
     <script type="module" src="src/js/main.js"></script>
 </body>
