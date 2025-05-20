@@ -192,29 +192,26 @@ export class UIManager {
     
     // Handle variables update from GlobeManager
     handleVariablesUpdated(variables, type) {
-        if (type === 'color' || type === 'width') {
-            // Update the route variable selects
-            const colorVariableSelect = document.getElementById('color-variable');
-            const widthVariableSelect = document.getElementById('width-variable');
-            
-            // Clear existing options
-            if (type === 'color') {
-                colorVariableSelect.innerHTML = '';
-            } else {
-                widthVariableSelect.innerHTML = '';
-            }
-            
-            // Add new options
+        const colorVariableSelect = document.getElementById('color-variable');
+        const widthVariableSelect = document.getElementById('width-variable');
+
+        if (type === 'color') {
+            colorVariableSelect.innerHTML = '';
+
             variables.forEach(variable => {
                 const optionElement = document.createElement('option');
                 optionElement.value = variable;
                 optionElement.textContent = variable === '$length' ? 'Distance' : variable;
-                
-                if (type === 'color') {
-                    colorVariableSelect.appendChild(optionElement);
-                } else if (type === 'width') {
-                    widthVariableSelect.appendChild(optionElement);
-                }
+                colorVariableSelect.appendChild(optionElement);
+            });
+        } else if (type === 'width') {
+            widthVariableSelect.innerHTML = '';
+
+            variables.forEach(variable => {
+                const optionElement = document.createElement('option');
+                optionElement.value = variable;
+                optionElement.textContent = variable === '$length' ? 'Distance' : variable;
+                widthVariableSelect.appendChild(optionElement);
             });
         } else if (type === 'pointSize') {
             // Update the point size variable select

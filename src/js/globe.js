@@ -1095,7 +1095,8 @@ export class GlobeManager {
         }
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Group points by route_id
         const routes = {};
@@ -1328,7 +1329,8 @@ export class GlobeManager {
         variableColumns.add('$length');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Find min/max values for data-driven styling if needed
         if (this.settings.routes.colorMode === 'variable' && this.settings.routes.variable) {
@@ -1591,7 +1593,8 @@ export class GlobeManager {
         variableColumns.add('$length');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Find unique columns for point size variables
         const pointSizeVariables = new Set();
@@ -2233,7 +2236,8 @@ export class GlobeManager {
         variableColumns.add('$order');
         
         // Update UI with available variables if needed
-        this.updateVariableOptions([...variableColumns]);
+        this.updateVariableOptions([...variableColumns], 'color');
+        this.updateVariableOptions([...variableColumns], 'width');
         
         // Sort trajectories by order
         trajectoryData.sort((a, b) => a.order - b.order);
@@ -2464,11 +2468,11 @@ export class GlobeManager {
     }
     
     // Update variable options in UI
-    updateVariableOptions(variables) {
+    updateVariableOptions(variables, type = 'color') {
         // This will be implemented by the UI manager
         // Placeholder for potential event emitting
         if (typeof this.onVariablesUpdated === 'function') {
-            this.onVariablesUpdated(variables, 'color');
+            this.onVariablesUpdated(variables, type);
         }
     }
     
