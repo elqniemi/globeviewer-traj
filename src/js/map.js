@@ -15,7 +15,10 @@ export class MapManager {
                 color: '#ff0000',
                 width: 3,
                 flowMode: 'directional',
-                style: 'solid'
+                style: 'solid',
+                curved: false,
+                offsetMode: 'split', // 'split' or 'none'
+                hoverVariable: null
             },
             points: {
                 color: '#ffffff',
@@ -140,6 +143,8 @@ export class MapManager {
 
     updateRouteThickness(thickness) {
         this.settings.routes.thickness = thickness;
+        // Treat thickness as width for 2D map
+        this.updateRouteWidth(thickness);
     }
 
     updateRouteHeight(height) {
@@ -194,6 +199,62 @@ export class MapManager {
         this.settings.points.sizeRange.max = max;
     }
 
+    setCurvedPaths(enabled) {
+        this.settings.routes.curved = enabled;
+    }
+
+    setOffsetMode(mode) {
+        this.settings.routes.offsetMode = mode;
+    }
+
+    setHoverVariable(variable) {
+        this.settings.routes.hoverVariable = variable;
+    }
+
+    // Compute points along great-circle path between two coordinates
+    computeGreatCircle(start, end, segments = 64) {
+        const toRad = Math.PI / 180;
+        const toDeg = 180 / Math.PI;
+        const lat1 = start[0] * toRad;
+        const lon1 = start[1] * toRad;
+        const lat2 = end[0] * toRad;
+        const lon2 = end[1] * toRad;
+
+        const d = 2 * Math.asin(Math.sqrt(
+            Math.sin((lat2 - lat1) / 2) ** 2 +
+            Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2
+        ));
+
+        if (d === 0) return [start, end];
+
+        const coords = [];
+        for (let i = 0; i <= segments; i++) {
+            const f = i / segments;
+            const A = Math.sin((1 - f) * d) / Math.sin(d);
+            const B = Math.sin(f * d) / Math.sin(d);
+            const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+            const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+            const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+            const lat = Math.atan2(z, Math.sqrt(x * x + y * y));
+            const lon = Math.atan2(y, x);
+            coords.push([lat * toDeg, lon * toDeg]);
+        }
+        return coords;
+    }
+
+    createRouteCoords(start, end, offsetSign) {
+        let s = start;
+        let e = end;
+        const dist = 0.3;
+        if (offsetSign && this.settings.routes.offsetMode === 'split') {
+            [s, e] = this.computeOffsetCoords(start, end, offsetSign, dist);
+        }
+        if (this.settings.routes.curved) {
+            return this.computeGreatCircle(s, e);
+        }
+        return [s, e];
+    }
+
     latLonToLatLng(lat, lon) {
         return [lat, lon];
     }
@@ -239,7 +300,6 @@ export class MapManager {
             if (e.source <= e.destination) pairMap[key].ab.push(e); else pairMap[key].ba.push(e);
         });
 
-        const dist = 0.5; // degree offset
         const edgesToDraw = [];
         Object.keys(pairMap).forEach(key => {
             const { ab, ba } = pairMap[key];
@@ -269,15 +329,15 @@ export class MapManager {
             const start = pointsMap[e.source];
             const end = pointsMap[e.destination];
             if (!start || !end) return;
-            let coords = [start, end];
-            if (e._offset) {
-                coords = this.computeOffsetCoords(start, end, e._offset, dist);
-            }
+            const coords = this.createRouteCoords(start, end, e._offset);
             const line = Llib.polyline(coords, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width,
                 opacity: 0.8
             });
+            if (this.settings.routes.hoverVariable && e[this.settings.routes.hoverVariable] !== undefined) {
+                line.bindTooltip(String(e[this.settings.routes.hoverVariable]));
+            }
             line.addTo(this.routesLayer);
             coords.forEach(c => allCoords.push(c));
         });
@@ -309,11 +369,14 @@ export class MapManager {
             allCoords.push([p.lat, p.lon]);
         });
         Object.values(routes).forEach(path => {
-            Llib.polyline(path, {
+            const coords = this.settings.routes.curved && path.length > 1 ?
+                path.flatMap((p, i) => i < path.length - 1 ? this.computeGreatCircle(path[i], path[i + 1]).slice(0, -1) : [p]) :
+                path;
+            Llib.polyline(coords, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
             }).addTo(this.routesLayer);
-            path.forEach(c => allCoords.push(c));
+            coords.forEach(c => allCoords.push(c));
         });
 
         this.updateLineStyle(this.settings.routes.style);
@@ -330,7 +393,13 @@ export class MapManager {
         const Llib = window.L;
         const allCoords = [];
         data.forEach(seg => {
-            const coords = [[seg.start_lat, seg.start_lon], [seg.end_lat, seg.end_lon]];
+            const coords = this.createRouteCoords([
+                seg.start_lat,
+                seg.start_lon
+            ], [
+                seg.end_lat,
+                seg.end_lon
+            ], 0);
             Llib.polyline(coords, {
                 color: this.settings.routes.color,
                 weight: this.settings.routes.width
